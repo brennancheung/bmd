@@ -3,6 +3,7 @@
 import AppKit
 import Darwin
 import Foundation
+import UniformTypeIdentifiers
 import WebKit
 
 private enum HeadlessRenderError: LocalizedError {
@@ -12,6 +13,8 @@ private enum HeadlessRenderError: LocalizedError {
     case invalidViewerTemplate(String)
     case pngEncodingFailed
     case timedOut
+    case invalidAppearance(String)
+    case invalidLayout(String)
 
     var errorDescription: String? {
         switch self {
@@ -27,6 +30,10 @@ private enum HeadlessRenderError: LocalizedError {
             return "Could not encode the WebKit snapshot as PNG"
         case .timedOut:
             return "Headless WebKit render timed out"
+        case let .invalidAppearance(value):
+            return "BMD_APPEARANCE must be light or dark, not: \(value)"
+        case let .invalidLayout(message):
+            return "Rendered layout failed verification: \(message)"
         }
     }
 }
@@ -35,6 +42,7 @@ private struct RenderInputs {
     let markdownURL: URL
     let outputURL: URL
     let viewerDirectory: URL
+    let appearance: String
 
     init(arguments: [String]) throws {
         guard arguments.count == 2 || arguments.count == 3 else {
@@ -74,6 +82,11 @@ private struct RenderInputs {
 
         viewerDirectory = repositoryRoot
             .appendingPathComponent("Resources/viewer", isDirectory: true)
+
+        appearance = ProcessInfo.processInfo.environment["BMD_APPEARANCE"] ?? "light"
+        guard appearance == "light" || appearance == "dark" else {
+            throw HeadlessRenderError.invalidAppearance(appearance)
+        }
     }
 }
 
@@ -88,11 +101,38 @@ private func makeInlinedViewer(from directory: URL) throws -> String {
     let index = try read(directory.appendingPathComponent("index.html"))
     let css = try read(directory.appendingPathComponent("style.css"))
     let marked = try read(directory.appendingPathComponent("vendor/marked.min.js"))
+    let highlight = try read(directory.appendingPathComponent("vendor/highlight/highlight.min.js"))
+    let katex = try read(directory.appendingPathComponent("vendor/katex/katex.min.js"))
+    let katexAutoRender = try read(directory.appendingPathComponent("vendor/katex/auto-render.min.js"))
+    let katexStyles = try read(directory.appendingPathComponent("vendor/katex/katex.min.css"))
+    let mermaid = try read(directory.appendingPathComponent("vendor/mermaid/mermaid.min.js"))
     let app = try read(directory.appendingPathComponent("app.js"))
+
+    let resolvedKatexStyles = katexStyles.replacingOccurrences(
+        of: "url(fonts/",
+        with: "url(bmd-local://viewer/vendor/katex/fonts/"
+    )
 
     let replacements = [
         (#"<link rel="stylesheet" href="style.css" />"#, "<style>\(css)</style>"),
+        (
+            #"<link rel="stylesheet" href="vendor/katex/katex.min.css" />"#,
+            "<style>\(resolvedKatexStyles)</style>"
+        ),
         (#"<script src="vendor/marked.min.js"></script>"#, "<script>\(marked)</script>"),
+        (
+            #"<script src="vendor/highlight/highlight.min.js"></script>"#,
+            "<script>\(highlight)</script>"
+        ),
+        (#"<script src="vendor/katex/katex.min.js"></script>"#, "<script>\(katex)</script>"),
+        (
+            #"<script src="vendor/katex/auto-render.min.js"></script>"#,
+            "<script>\(katexAutoRender)</script>"
+        ),
+        (
+            #"<script src="vendor/mermaid/mermaid.min.js"></script>"#,
+            "<script>\(mermaid)</script>"
+        ),
         (#"<script src="app.js"></script>"#, "<script>\(app)</script>"),
     ]
 
@@ -105,36 +145,119 @@ private func makeInlinedViewer(from directory: URL) throws -> String {
     }
 }
 
+private final class HeadlessLocalAssetHandler: NSObject, WKURLSchemeHandler {
+    let documentDirectory: URL
+    let viewerDirectory: URL
+
+    init(documentDirectory: URL, viewerDirectory: URL) {
+        self.documentDirectory = documentDirectory
+        self.viewerDirectory = viewerDirectory
+    }
+
+    func webView(_ webView: WKWebView, start urlSchemeTask: WKURLSchemeTask) {
+        guard let requestURL = urlSchemeTask.request.url,
+              let fileURL = resolvedFileURL(for: requestURL) else {
+            urlSchemeTask.didFailWithError(URLError(.badURL))
+            return
+        }
+
+        do {
+            let data = try Data(contentsOf: fileURL, options: .mappedIfSafe)
+            let mimeType = UTType(filenameExtension: fileURL.pathExtension)?.preferredMIMEType
+                ?? "application/octet-stream"
+            urlSchemeTask.didReceive(
+                URLResponse(
+                    url: requestURL,
+                    mimeType: mimeType,
+                    expectedContentLength: data.count,
+                    textEncodingName: nil
+                )
+            )
+            urlSchemeTask.didReceive(data)
+            urlSchemeTask.didFinish()
+        } catch {
+            urlSchemeTask.didFailWithError(error)
+        }
+    }
+
+    func webView(_ webView: WKWebView, stop urlSchemeTask: WKURLSchemeTask) {}
+
+    private func resolvedFileURL(for requestURL: URL) -> URL? {
+        let root: URL?
+        switch requestURL.host {
+        case "document": root = documentDirectory
+        case "viewer": root = viewerDirectory
+        default: root = nil
+        }
+        guard let root else { return nil }
+
+        let relativePath = requestURL.path.removingPercentEncoding?
+            .trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+            ?? ""
+        guard !relativePath.isEmpty else { return nil }
+
+        let standardizedRoot = root
+            .resolvingSymlinksInPath()
+            .standardizedFileURL
+        let candidate = standardizedRoot
+            .appendingPathComponent(relativePath)
+            .resolvingSymlinksInPath()
+            .standardizedFileURL
+        let rootPath = standardizedRoot.path.hasSuffix("/")
+            ? standardizedRoot.path
+            : standardizedRoot.path + "/"
+        return candidate.path.hasPrefix(rootPath) ? candidate : nil
+    }
+}
+
 @MainActor
 private final class HeadlessRenderer: NSObject, WKNavigationDelegate {
     private let markdown: String
     private let title: String
     private let outputURL: URL
+    private let appearance: String
+    private let assetHandler: HeadlessLocalAssetHandler
     private let webView: WKWebView
     private var timeoutTimer: Timer?
 
-    init(markdown: String, title: String, outputURL: URL) {
+    init(
+        markdown: String,
+        title: String,
+        outputURL: URL,
+        appearance: String,
+        documentDirectory: URL,
+        viewerDirectory: URL
+    ) {
         self.markdown = markdown
         self.title = title
         self.outputURL = outputURL
+        self.appearance = appearance
+        assetHandler = HeadlessLocalAssetHandler(
+            documentDirectory: documentDirectory,
+            viewerDirectory: viewerDirectory
+        )
 
         let configuration = WKWebViewConfiguration()
         configuration.websiteDataStore = .nonPersistent()
+        configuration.setURLSchemeHandler(assetHandler, forURLScheme: "bmd-local")
         webView = WKWebView(
-            frame: NSRect(x: 0, y: 0, width: 1100, height: 750),
+            frame: NSRect(x: 0, y: 0, width: 1320, height: 900),
             configuration: configuration
         )
         super.init()
+        webView.appearance = NSAppearance(
+            named: appearance == "dark" ? .darkAqua : .aqua
+        )
         webView.navigationDelegate = self
     }
 
-    func start(html: String, baseURL: URL) {
+    func start(html: String) {
         timeoutTimer = Timer.scheduledTimer(withTimeInterval: 15, repeats: false) { [weak self] _ in
             Task { @MainActor in
                 self?.finish(with: .failure(HeadlessRenderError.timedOut))
             }
         }
-        webView.loadHTMLString(html, baseURL: baseURL)
+        webView.loadHTMLString(html, baseURL: URL(string: "bmd-local://document/"))
     }
 
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
@@ -145,16 +268,77 @@ private final class HeadlessRenderer: NSObject, WKNavigationDelegate {
                     if (typeof window.bmdRender !== "function") {
                       throw new Error("Bundled Markdown renderer did not load");
                     }
-                    window.bmdRender(markdown, title);
+                    const summary = await window.bmdRender(
+                      markdown,
+                      title,
+                      appearance,
+                      820,
+                      1200
+                    );
+                    await document.fonts.ready;
+                    await Promise.all(Array.from(document.images).map((image) => {
+                      if (image.complete) return Promise.resolve();
+                      return new Promise((resolve) => {
+                        image.addEventListener("load", resolve, { once: true });
+                        image.addEventListener("error", resolve, { once: true });
+                      });
+                    }));
+                    const content = document.getElementById("content");
+                    const table = content && content.querySelector(":scope > .table-wrap");
+                    const prose = content && content.querySelector(":scope > :not(.table-wrap)");
+                    const root = document.documentElement;
+                    return {
+                      ...summary,
+                      failedImages: Array.from(document.images).filter((image) => !image.naturalWidth).length,
+                      appearance: document.documentElement.dataset.appearance,
+                      documentHeight: Math.ceil(document.documentElement.scrollHeight),
+                      documentWidth: Math.ceil(root.scrollWidth),
+                      viewportWidth: Math.ceil(root.clientWidth),
+                      horizontalOverflow: root.scrollWidth > root.clientWidth + 1,
+                      tableAligned: !table || !prose ||
+                        Math.abs(table.getBoundingClientRect().left - prose.getBoundingClientRect().left) <= 1,
+                    };
                     """
-                _ = try await webView.callAsyncJavaScript(
+                let summary = try await webView.callAsyncJavaScript(
                     body,
-                    arguments: ["markdown": markdown, "title": title],
+                    arguments: [
+                        "markdown": markdown,
+                        "title": title,
+                        "appearance": appearance,
+                    ],
                     in: nil,
                     contentWorld: .page
                 )
 
-                let snapshot = try await webView.takeSnapshot(configuration: nil)
+                let snapshotConfiguration = WKSnapshotConfiguration()
+                if let values = summary as? [String: Any],
+                   let documentHeight = values["documentHeight"] as? NSNumber {
+                    if (values["horizontalOverflow"] as? NSNumber)?.boolValue == true {
+                        throw HeadlessRenderError.invalidLayout(
+                            "document is wider than its viewport"
+                        )
+                    }
+                    if (values["tableAligned"] as? NSNumber)?.boolValue == false {
+                        throw HeadlessRenderError.invalidLayout(
+                            "table does not share the prose left edge"
+                        )
+                    }
+                    let captureHeight = min(CGFloat(truncating: documentHeight), 12_000)
+                    webView.setFrameSize(
+                        NSSize(width: webView.bounds.width, height: captureHeight)
+                    )
+                    webView.layoutSubtreeIfNeeded()
+                    try await Task.sleep(for: .milliseconds(100))
+                    snapshotConfiguration.rect = CGRect(
+                        x: 0,
+                        y: 0,
+                        width: webView.bounds.width,
+                        height: captureHeight
+                    )
+                }
+                let snapshot = try await webView.takeSnapshot(
+                    configuration: snapshotConfiguration
+                )
                 guard let tiff = snapshot.tiffRepresentation,
                       let bitmap = NSBitmapImageRep(data: tiff),
                       let png = bitmap.representation(using: .png, properties: [:]) else {
@@ -166,6 +350,9 @@ private final class HeadlessRenderer: NSObject, WKNavigationDelegate {
                     withIntermediateDirectories: true
                 )
                 try png.write(to: outputURL, options: .atomic)
+                if let summary {
+                    print("Render summary: \(summary)")
+                }
                 finish(with: .success(outputURL))
             } catch {
                 finish(with: .failure(error))
@@ -217,8 +404,10 @@ private enum HeadlessProcess {
         markdown: String,
         title: String,
         outputURL: URL,
+        appearance: String,
         html: String,
-        baseURL: URL
+        documentDirectory: URL,
+        viewerDirectory: URL
     ) {
         let application = NSApplication.shared
         application.setActivationPolicy(.prohibited)
@@ -227,10 +416,13 @@ private enum HeadlessProcess {
         let instance = HeadlessRenderer(
             markdown: markdown,
             title: title,
-            outputURL: outputURL
+            outputURL: outputURL,
+            appearance: appearance,
+            documentDirectory: documentDirectory,
+            viewerDirectory: viewerDirectory
         )
         renderer = instance
-        instance.start(html: html, baseURL: baseURL)
+        instance.start(html: html)
     }
 }
 
@@ -244,8 +436,10 @@ do {
             markdown: markdown,
             title: inputs.markdownURL.lastPathComponent,
             outputURL: inputs.outputURL,
+            appearance: inputs.appearance,
             html: html,
-            baseURL: inputs.viewerDirectory
+            documentDirectory: inputs.markdownURL.deletingLastPathComponent(),
+            viewerDirectory: inputs.viewerDirectory
         )
     }
     RunLoop.main.run()

@@ -4,10 +4,15 @@ import OSLog
 
 /// Thin bridge: load bundled viewer, inject markdown via `window.bmdRender`.
 struct MarkdownWebView: NSViewRepresentable {
+    @Environment(\.colorScheme) private var colorScheme
+
     var markdown: String
     var title: String
     var baseDirectory: URL?
     var renderToken: UInt64
+    var zoomScale: Double
+    var proseWidth: Double
+    var tableWidth: Double
 
     func makeCoordinator() -> Coordinator {
         Coordinator()
@@ -16,8 +21,13 @@ struct MarkdownWebView: NSViewRepresentable {
     func makeNSView(context: Context) -> WKWebView {
         let config = WKWebViewConfiguration()
         config.websiteDataStore = .nonPersistent()
+        config.setURLSchemeHandler(
+            context.coordinator.localAssetHandler,
+            forURLScheme: LocalAssetSchemeHandler.scheme
+        )
 
         let webView = WKWebView(frame: .zero, configuration: config)
+        webView.allowsMagnification = true
         webView.navigationDelegate = context.coordinator
         context.coordinator.webView = webView
         context.coordinator.loadViewer(webView: webView, readRoot: nil)
@@ -29,11 +39,18 @@ struct MarkdownWebView: NSViewRepresentable {
         coordinator.pendingMarkdown = markdown
         coordinator.pendingTitle = title
         coordinator.pendingToken = renderToken
+        coordinator.pendingAppearance = colorScheme == .dark ? "dark" : "light"
+        coordinator.pendingProseWidth = proseWidth
+        coordinator.pendingTableWidth = tableWidth
+        if abs(webView.pageZoom - zoomScale) > 0.001 {
+            webView.pageZoom = zoomScale
+        }
 
         if let baseDirectory {
             let path = baseDirectory.standardizedFileURL.path
             if coordinator.grantedReadRoot?.path != path {
                 coordinator.grantedReadRoot = baseDirectory
+                coordinator.localAssetHandler.documentDirectory = baseDirectory
                 coordinator.loadViewer(webView: webView, readRoot: baseDirectory)
                 return
             }
@@ -45,6 +62,7 @@ struct MarkdownWebView: NSViewRepresentable {
     @MainActor
     final class Coordinator: NSObject, WKNavigationDelegate {
         private let logger = Logger(subsystem: "com.brennan.bmd", category: "MarkdownWebView")
+        let localAssetHandler = LocalAssetSchemeHandler()
 
         weak var webView: WKWebView?
         var viewerReady = false
@@ -53,7 +71,13 @@ struct MarkdownWebView: NSViewRepresentable {
         var pendingMarkdown: String = ""
         var pendingTitle: String = "bmd"
         var pendingToken: UInt64 = 0
+        var pendingAppearance: String = "light"
+        var pendingProseWidth: Double = AppPreferences.Defaults.proseWidth
+        var pendingTableWidth: Double = AppPreferences.Defaults.tableWidth
         private var renderedToken: UInt64?
+        private var renderedAppearance: String?
+        private var renderedProseWidth: Double?
+        private var renderedTableWidth: Double?
 
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
             viewerReady = true
@@ -82,16 +106,36 @@ struct MarkdownWebView: NSViewRepresentable {
 
         func flushRenderIfPossible() {
             guard viewerReady, let webView else { return }
-            guard renderedToken != pendingToken else { return }
+            guard renderedToken != pendingToken
+                    || renderedAppearance != pendingAppearance
+                    || renderedProseWidth != pendingProseWidth
+                    || renderedTableWidth != pendingTableWidth else {
+                return
+            }
             renderedToken = pendingToken
+            renderedAppearance = pendingAppearance
+            renderedProseWidth = pendingProseWidth
+            renderedTableWidth = pendingTableWidth
 
             let js = """
                 if (typeof window.bmdRender !== "function") {
                   throw new Error("Bundled Markdown renderer did not load");
                 }
-                window.bmdRender(markdown, title);
+                return await window.bmdRender(
+                  markdown,
+                  title,
+                  appearance,
+                  proseWidth,
+                  tableWidth
+                );
                 """
-            let arguments = ["markdown": pendingMarkdown, "title": pendingTitle]
+            let arguments: [String: Any] = [
+                "markdown": pendingMarkdown,
+                "title": pendingTitle,
+                "appearance": pendingAppearance,
+                "proseWidth": pendingProseWidth,
+                "tableWidth": pendingTableWidth,
+            ]
             Task { @MainActor [weak self, weak webView] in
                 guard let webView else { return }
                 do {
@@ -114,28 +158,65 @@ struct MarkdownWebView: NSViewRepresentable {
             guard let viewerDir = Bundle.main.resourceURL?.appendingPathComponent("viewer", isDirectory: true) else {
                 return
             }
+            localAssetHandler.viewerDirectory = viewerDir
             let index = viewerDir.appendingPathComponent("index.html")
             viewerReady = false
             renderedToken = nil
+            renderedAppearance = nil
+            renderedProseWidth = nil
+            renderedTableWidth = nil
 
             if let html = try? String(contentsOf: index, encoding: .utf8),
                let marked = try? String(contentsOf: viewerDir.appendingPathComponent("vendor/marked.min.js"), encoding: .utf8),
+               let highlight = try? String(contentsOf: viewerDir.appendingPathComponent("vendor/highlight/highlight.min.js"), encoding: .utf8),
+               let katex = try? String(contentsOf: viewerDir.appendingPathComponent("vendor/katex/katex.min.js"), encoding: .utf8),
+               let katexAutoRender = try? String(contentsOf: viewerDir.appendingPathComponent("vendor/katex/auto-render.min.js"), encoding: .utf8),
+               let katexStyles = try? String(contentsOf: viewerDir.appendingPathComponent("vendor/katex/katex.min.css"), encoding: .utf8),
+               let mermaid = try? String(contentsOf: viewerDir.appendingPathComponent("vendor/mermaid/mermaid.min.js"), encoding: .utf8),
                let app = try? String(contentsOf: viewerDir.appendingPathComponent("app.js"), encoding: .utf8),
                let css = try? String(contentsOf: viewerDir.appendingPathComponent("style.css"), encoding: .utf8) {
+                let resolvedKatexStyles = katexStyles.replacingOccurrences(
+                    of: "url(fonts/",
+                    with: "url(\(LocalAssetSchemeHandler.scheme)://viewer/vendor/katex/fonts/"
+                )
                 let inlined = html
                     .replacingOccurrences(
                         of: #"<link rel="stylesheet" href="style.css" />"#,
                         with: "<style>\(css)</style>"
                     )
                     .replacingOccurrences(
+                        of: #"<link rel="stylesheet" href="vendor/katex/katex.min.css" />"#,
+                        with: "<style>\(resolvedKatexStyles)</style>"
+                    )
+                    .replacingOccurrences(
                         of: #"<script src="vendor/marked.min.js"></script>"#,
                         with: "<script>\(marked)</script>"
+                    )
+                    .replacingOccurrences(
+                        of: #"<script src="vendor/highlight/highlight.min.js"></script>"#,
+                        with: "<script>\(highlight)</script>"
+                    )
+                    .replacingOccurrences(
+                        of: #"<script src="vendor/katex/katex.min.js"></script>"#,
+                        with: "<script>\(katex)</script>"
+                    )
+                    .replacingOccurrences(
+                        of: #"<script src="vendor/katex/auto-render.min.js"></script>"#,
+                        with: "<script>\(katexAutoRender)</script>"
+                    )
+                    .replacingOccurrences(
+                        of: #"<script src="vendor/mermaid/mermaid.min.js"></script>"#,
+                        with: "<script>\(mermaid)</script>"
                     )
                     .replacingOccurrences(
                         of: #"<script src="app.js"></script>"#,
                         with: "<script>\(app)</script>"
                     )
-                webView.loadHTMLString(inlined, baseURL: viewerDir)
+
+                let baseURL = readRoot == nil
+                    ? URL(string: "\(LocalAssetSchemeHandler.scheme)://viewer/")
+                    : URL(string: "\(LocalAssetSchemeHandler.scheme)://document/")
+                webView.loadHTMLString(inlined, baseURL: baseURL)
                 return
             }
 

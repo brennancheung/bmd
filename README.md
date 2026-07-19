@@ -1,6 +1,8 @@
 # bmd
 
-Dedicated macOS Markdown reader. Native shell, web rendering. One window, sidebar recents + pinned folders.
+**Beautiful Markdown** is a dedicated macOS Markdown reader. Native shell, web
+rendering. One window, sidebar recents + pinned folders. The app itself is
+always named **bmd**.
 
 **Not** an editor. **Not** Quick Look (yet). **Not** Safari/Chrome.
 
@@ -10,7 +12,8 @@ Agent- and human-written Markdown is painful in Finder + Quick Look: narrow prev
 
 ## Status
 
-Phase 1 proof of concept — scaffold + basic open/render/recents.
+Working proof of concept with native navigation and a fully offline rich
+Markdown renderer.
 
 Full intent and handoff notes: [`docs/CONTEXT.md`](docs/CONTEXT.md)  
 Plan: [`docs/PLAN.md`](docs/PLAN.md)
@@ -34,6 +37,19 @@ xcodebuild -scheme bmd -configuration Debug -derivedDataPath build build
 open build/Build/Products/Debug/bmd.app
 ```
 
+Every successful Run, Test, or Profile scheme build also updates the stable
+`/Applications/bmd.app` copy and registers it with Launch Services. Archives and
+static analysis do not modify the installed app. To build, install, and ask
+macOS to make bmd the default for Markdown in one command:
+
+```bash
+./scripts/install --set-default
+```
+
+The default association is attached to the stable `com.brennan.bmd` bundle
+identifier. Replacing `/Applications/bmd.app` with a newer build keeps that
+association. The same action is available later in bmd → Settings.
+
 ## CLI
 
 After the app exists (build or `/Applications/bmd.app`):
@@ -56,6 +72,16 @@ without launching `bmd` or creating a visible window:
 ./scripts/render-headless.swift examples/welcome.md
 ```
 
+Use the checked-in rendering showcase to exercise syntax highlighting, math,
+Mermaid, linked PNG/SVG files, inline SVG, tables, and failure states:
+
+```bash
+BMD_APPEARANCE=light ./scripts/render-headless.swift \
+  examples/rendering-showcase.md build/headless/showcase-light.png
+BMD_APPEARANCE=dark ./scripts/render-headless.swift \
+  examples/rendering-showcase.md build/headless/showcase-dark.png
+```
+
 The default PNG is written to `build/headless/<file-name>.png`. Pass a second
 argument to choose a different output path:
 
@@ -66,8 +92,34 @@ argument to choose a different output path:
 ## Stack
 
 - SwiftUI app target **bmd**  
-- WKWebView + bundled `Resources/viewer` (marked.js + CSS)  
-- UserDefaults for recents / pins (bookmarks later)
+- WKWebView + bundled marked, highlight.js, KaTeX, and Mermaid
+- UserDefaults path lists for recents and pins
+
+Relative local assets are served to WebKit through a read-only handler bounded
+to the current Markdown directory. The direct-distribution build is not App
+Sandboxed because a file-only sandbox grant cannot read sibling images.
+
+## Verification
+
+```bash
+# Native build
+xcodebuild -scheme bmd -configuration Debug -derivedDataPath build build
+
+# Local-asset containment regression test
+mkdir -p build/tests
+xcrun swiftc -parse-as-library \
+  bmd/LocalAssetSchemeHandler.swift tests/LocalAssetResolverTests.swift \
+  -framework WebKit -framework UniformTypeIdentifiers \
+  -o build/tests/local-asset-resolver-tests
+build/tests/local-asset-resolver-tests
+
+# Preferences persistence and zoom behavior
+xcrun swiftc -parse-as-library \
+  bmd/AppPreferences.swift tests/AppPreferencesTests.swift \
+  -framework Combine \
+  -o build/tests/app-preferences-tests
+build/tests/app-preferences-tests
+```
 
 ## License
 

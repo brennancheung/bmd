@@ -4,6 +4,7 @@ import AppKit
 
 struct ContentView: View {
     @EnvironmentObject private var appState: AppState
+    @EnvironmentObject private var preferences: AppPreferences
 
     var body: some View {
         NavigationSplitView {
@@ -12,6 +13,13 @@ struct ContentView: View {
             DetailView()
         }
         .navigationTitle(appState.currentTitle)
+        .background {
+            WindowConfigurator(
+                width: preferences.windowWidth,
+                height: preferences.windowHeight,
+                shouldCenter: preferences.centerWindow
+            )
+        }
         .onAppear {
             if let delegate = NSApp.delegate as? AppDelegate {
                 delegate.appState = appState
@@ -133,6 +141,7 @@ struct SidebarView: View {
 
 struct DetailView: View {
     @EnvironmentObject private var appState: AppState
+    @EnvironmentObject private var preferences: AppPreferences
 
     var body: some View {
         VStack(spacing: 0) {
@@ -149,7 +158,10 @@ struct DetailView: View {
                 markdown: appState.markdownText,
                 title: appState.currentTitle,
                 baseDirectory: appState.baseDirectory,
-                renderToken: appState.renderToken
+                renderToken: appState.renderToken,
+                zoomScale: preferences.zoomScale,
+                proseWidth: preferences.proseWidth,
+                tableWidth: preferences.tableWidth
             )
             .frame(
                 minWidth: 320,
@@ -159,5 +171,58 @@ struct DetailView: View {
             )
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
+private struct WindowConfigurator: NSViewRepresentable {
+    let width: Double
+    let height: Double
+    let shouldCenter: Bool
+
+    func makeNSView(context: Context) -> WindowConfigurationView {
+        WindowConfigurationView(frame: .zero)
+    }
+
+    func updateNSView(_ view: WindowConfigurationView, context: Context) {
+        view.configure = { window in
+            let visibleFrame = (window.screen ?? NSScreen.main)?.visibleFrame
+            let requestedSize = NSSize(width: width, height: height)
+            let contentSize: NSSize
+            if let visibleFrame {
+                contentSize = NSSize(
+                    width: min(requestedSize.width, visibleFrame.width * 0.94),
+                    height: min(requestedSize.height, visibleFrame.height * 0.92)
+                )
+            } else {
+                contentSize = requestedSize
+            }
+            window.setContentSize(contentSize)
+
+            guard shouldCenter, let visibleFrame else { return }
+            let frame = window.frame
+            window.setFrameOrigin(
+                NSPoint(
+                    x: visibleFrame.midX - frame.width / 2,
+                    y: visibleFrame.midY - frame.height / 2
+                )
+            )
+        }
+        view.configureIfPossible()
+    }
+}
+
+private final class WindowConfigurationView: NSView {
+    var configure: ((NSWindow) -> Void)?
+    private var didConfigure = false
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        configureIfPossible()
+    }
+
+    func configureIfPossible() {
+        guard !didConfigure, let window, let configure else { return }
+        didConfigure = true
+        configure(window)
     }
 }

@@ -13,7 +13,6 @@ final class AppState: ObservableObject {
     @Published var pins: [BookmarkItem]
 
     private let store: RecentStore
-    private var activeScopedURL: URL?
 
     init(store: RecentStore = .shared) {
         self.store = store
@@ -65,12 +64,6 @@ final class AppState: ObservableObject {
     func openFile(_ url: URL) {
         let resolved = url.standardizedFileURL
 
-        stopScopedAccess()
-        let accessing = resolved.startAccessingSecurityScopedResource()
-        if accessing {
-            activeScopedURL = resolved
-        }
-
         do {
             let data = try Data(contentsOf: resolved)
             guard let text = String(data: data, encoding: .utf8)
@@ -120,10 +113,4 @@ final class AppState: ObservableObject {
         return store.listMarkdownFiles(in: folder)
     }
 
-    private func stopScopedAccess() {
-        if let activeScopedURL {
-            activeScopedURL.stopAccessingSecurityScopedResource()
-        }
-        activeScopedURL = nil
-    }
 }

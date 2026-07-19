@@ -1,6 +1,6 @@
 # bmd — session context & handoff
 
-**Project name:** `bmd` (Brennan's Markdown — never put that long name in UI/titles; product is literally **bmd** everywhere)  
+**Project name:** `bmd` (Beautiful Markdown in repository-facing prose; the product UI is literally **bmd**)
 **Location:** `/Users/brennan/code/bmd`  
 **Not related to:** `/Users/brennan/code/QLMarkdown` (inspiration only; do not build inside that repo)
 
@@ -33,7 +33,7 @@ Primary pain points with existing Quick Look Markdown tools (esp. QLMarkdown):
 ```
 Native (Swift)
   - window, sidebar, recents, pins, open file/folder
-  - sandbox + security-scoped access
+  - file access + WebKit document read root
   - pass markdown text + base directory into webview
 
 Web (bundled Resources/viewer)
@@ -51,7 +51,7 @@ Swift owns:
 - Which file is open  
 - Reading file bytes  
 - Recent/pin lists  
-- Granting WKWebView read access to the file’s directory  
+- Serving relative assets from the current file’s directory
 
 JS owns:
 
@@ -104,12 +104,21 @@ We studied it only to know how QL works and what to *avoid*. bmd is greenfield a
 
 ### Phase 2 — Daily driver
 
-- Remember window frame  
+- [x] Configurable centered default window size
+- [x] Configurable zoom and readable/table widths
+- [x] Native View menu zoom commands (Command-plus/minus/zero)
+- [x] Stable `/Applications/bmd.app` install/update workflow
+- [x] Set bmd as the Markdown default from Settings or the installer
 - Pin folders: list contained `.md` files  
-- Security-scoped bookmarks so pins/recents survive relaunch under sandbox  
-- Better CSS, light/dark  
-- Syntax highlighting (highlight.js or Shiki)  
+- Optional folder grants/bookmarks if App Store sandboxing is added later
+- [x] Better CSS, light/dark
+- [x] Syntax highlighting with highlight.js
 - Click external links in default browser; internal anchors work  
+
+The direct-distribution build is intentionally not App Sandboxed. A file-only
+Powerbox grant lets bmd read the selected Markdown file but not its sibling
+images. Re-enabling the sandbox requires an explicit folder-grant workflow and
+security-scoped directory bookmarks.
 
 ### Phase 3 — Quick Look (optional)
 
@@ -118,8 +127,8 @@ We studied it only to know how QL works and what to *avoid*. bmd is greenfield a
 
 ### Phase 4 — Nice-to-haves
 
-- Math (KaTeX offline)  
-- Mermaid  
+- [x] Math with offline KaTeX
+- [x] Mermaid diagrams
 - “Open from clipboard” if paste looks like a path  
 - Watch pinned folder / auto-open newest  
 - Outline / TOC sidebar section  

@@ -1,4 +1,4 @@
-/* global marked */
+/* global hljs, marked, mermaid, renderMathInElement */
 (function () {
   "use strict";
 
@@ -7,8 +7,6 @@
     marked.setOptions({
       gfm: true,
       breaks: false,
-      headerIds: true,
-      mangle: false,
     });
   }
 
@@ -24,16 +22,126 @@
     });
   }
 
+  function renderMath(root) {
+    if (typeof renderMathInElement !== "function") return;
+    renderMathInElement(root, {
+      delimiters: [
+        { left: "$$", right: "$$", display: true },
+        { left: "\\[", right: "\\]", display: true },
+        { left: "\\(", right: "\\)", display: false },
+        { left: "$", right: "$", display: false },
+      ],
+      ignoredTags: ["script", "noscript", "style", "textarea", "pre", "code"],
+      ignoredClasses: ["mermaid"],
+      throwOnError: false,
+      strict: "warn",
+    });
+  }
+
+  function highlightCode(root) {
+    if (typeof hljs === "undefined") return;
+    root.querySelectorAll("pre code").forEach(function (code) {
+      if (code.classList.contains("language-mermaid")) return;
+      try {
+        hljs.highlightElement(code);
+      } catch (error) {
+        code.classList.add("nohighlight");
+        console.warn("Could not highlight code block", error);
+      }
+    });
+  }
+
+  function extractMermaidBlocks(root) {
+    return Array.from(root.querySelectorAll("pre code.language-mermaid")).map(
+      function (code, index) {
+        var container = document.createElement("figure");
+        container.className = "mermaid-diagram";
+        container.dataset.diagramIndex = String(index);
+        var source = code.textContent || "";
+        code.parentElement.replaceWith(container);
+        return { container: container, source: source, index: index };
+      }
+    );
+  }
+
+  function diagramError(container, error) {
+    container.className = "mermaid-diagram diagram-error";
+    var heading = document.createElement("strong");
+    heading.textContent = "Diagram error";
+    var detail = document.createElement("pre");
+    detail.textContent = String(error && error.message ? error.message : error);
+    container.replaceChildren(heading, detail);
+  }
+
+  async function renderDiagrams(blocks, appearance) {
+    if (blocks.length === 0) return;
+    if (typeof mermaid === "undefined") {
+      blocks.forEach(function (block) {
+        diagramError(block.container, new Error("Mermaid did not load"));
+      });
+      return;
+    }
+
+    mermaid.initialize({
+      startOnLoad: false,
+      securityLevel: "strict",
+      theme: appearance === "dark" ? "dark" : "default",
+      flowchart: { htmlLabels: false, useMaxWidth: true },
+    });
+
+    for (var block of blocks) {
+      try {
+        var id = "bmd-mermaid-" + block.index;
+        var result = await mermaid.render(id, block.source);
+        block.container.innerHTML = result.svg;
+        if (typeof result.bindFunctions === "function") {
+          result.bindFunctions(block.container);
+        }
+      } catch (error) {
+        diagramError(block.container, error);
+        var leakedErrorDiagram = document.getElementById("d" + "bmd-mermaid-" + block.index);
+        if (leakedErrorDiagram) leakedErrorDiagram.remove();
+      }
+    }
+  }
+
+  function setAppearance(appearance) {
+    document.documentElement.dataset.appearance = appearance === "dark" ? "dark" : "light";
+  }
+
+  function setLayoutPreferences(proseWidth, tableWidth) {
+    var safeProseWidth = Math.min(Math.max(Number(proseWidth) || 820, 640), 1040);
+    var safeTableWidth = Math.min(
+      Math.max(Number(tableWidth) || 1200, safeProseWidth, 820),
+      1600
+    );
+    document.documentElement.style.setProperty("--max-prose", safeProseWidth + "px");
+    document.documentElement.style.setProperty("--max-table", safeTableWidth + "px");
+  }
+
   /**
-   * Called from Swift via evaluateJavaScript.
+   * Called from Swift via callAsyncJavaScript.
    * @param {string} markdownSource
    * @param {string} [title]
+   * @param {string} [appearance]
+   * @param {number} [proseWidth]
+   * @param {number} [tableWidth]
+   * @returns {Promise<object>}
    */
-  window.bmdRender = function bmdRender(markdownSource, title) {
+  window.bmdRender = async function bmdRender(
+    markdownSource,
+    title,
+    appearance,
+    proseWidth,
+    tableWidth
+  ) {
     configureMarked();
+    setAppearance(appearance);
+    setLayoutPreferences(proseWidth, tableWidth);
+
     var empty = document.getElementById("empty");
     var content = document.getElementById("content");
-    if (!content) return;
+    if (!content) throw new Error("Viewer content element is missing");
 
     var src = typeof markdownSource === "string" ? markdownSource : "";
     if (!src) {
@@ -41,7 +149,14 @@
       content.hidden = true;
       content.innerHTML = "";
       document.title = "bmd";
-      return;
+      return {
+        codeBlocks: 0,
+        diagramErrors: 0,
+        diagrams: 0,
+        images: 0,
+        inlineSVG: 0,
+        math: 0,
+      };
     }
 
     if (empty) empty.hidden = true;
@@ -51,21 +166,34 @@
     try {
       content.innerHTML = marked.parse(src);
       wrapTables(content);
-    } catch (err) {
-      content.innerHTML =
-        "<pre class='error'>Render error: " +
-        String(err && err.message ? err.message : err) +
-        "</pre>";
-    }
+      renderMath(content);
+      highlightCode(content);
+      var diagrams = extractMermaidBlocks(content);
+      await renderDiagrams(diagrams, appearance);
 
-    window.scrollTo(0, 0);
+      var result = {
+        codeBlocks: content.querySelectorAll("pre code.hljs").length,
+        diagramErrors: content.querySelectorAll(".diagram-error").length,
+        diagrams: content.querySelectorAll(".mermaid-diagram svg").length,
+        images: content.querySelectorAll("img").length,
+        inlineSVG: content.querySelectorAll(":scope > svg").length,
+        math: content.querySelectorAll(".katex").length,
+      };
+      window.scrollTo(0, 0);
+      return result;
+    } catch (error) {
+      content.innerHTML = "";
+      var message = document.createElement("pre");
+      message.className = "error";
+      message.textContent = "Render error: " + String(error && error.message ? error.message : error);
+      content.appendChild(message);
+      throw error;
+    }
   };
 
   window.bmdClear = function bmdClear() {
-    window.bmdRender("", "");
+    return window.bmdRender("", "", "light", 820, 1200);
   };
 
-  document.addEventListener("DOMContentLoaded", function () {
-    configureMarked();
-  });
+  document.addEventListener("DOMContentLoaded", configureMarked);
 })();

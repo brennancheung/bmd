@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ $# -lt 1 || $# -gt 2 ]]; then
+  echo "Usage: scripts/install-built-app /path/to/bmd.app [/Applications/bmd.app]" >&2
+  exit 64
+fi
+
+source_app="${1%/}"
+destination_app="${2:-/Applications/bmd.app}"
+staging_app="${destination_app}.installing"
+previous_app="${destination_app}.previous"
+
+if [[ ! -d "${source_app}" ]]; then
+  echo "bmd install: build product not found: ${source_app}" >&2
+  exit 66
+fi
+
+if [[ "$(basename "${source_app}")" != "bmd.app" || "$(basename "${destination_app}")" != "bmd.app" ]]; then
+  echo "bmd install: source and destination must both be named bmd.app" >&2
+  exit 64
+fi
+
+mkdir -p "$(dirname "${destination_app}")"
+rm -rf "${staging_app}" "${previous_app}"
+/usr/bin/ditto "${source_app}" "${staging_app}"
+/usr/bin/codesign --verify --deep --strict "${staging_app}"
+
+if [[ -e "${destination_app}" ]]; then
+  mv "${destination_app}" "${previous_app}"
+fi
+mv "${staging_app}" "${destination_app}"
+rm -rf "${previous_app}"
+
+launch_services="/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister"
+if [[ -x "${launch_services}" ]]; then
+  if [[ "${source_app}" != "${destination_app}" ]]; then
+    "${launch_services}" -u "${source_app}" 2>/dev/null || true
+  fi
+  "${launch_services}" -f "${destination_app}"
+fi
+
+echo "Installed ${destination_app}"

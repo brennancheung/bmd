@@ -4,18 +4,23 @@ import AppKit
 @main
 struct bmdApp: App {
     @StateObject private var appState = AppState()
+    @StateObject private var preferences = AppPreferences()
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
 
     var body: some Scene {
         Window("bmd", id: "main") {
             ContentView()
                 .environmentObject(appState)
+                .environmentObject(preferences)
                 .onAppear {
                     appDelegate.appState = appState
                     appDelegate.drainPending(into: appState)
                 }
         }
-        .defaultSize(width: 1100, height: 750)
+        .defaultSize(
+            width: preferences.windowWidth,
+            height: preferences.windowHeight
+        )
         .commands {
             CommandGroup(replacing: .newItem) {
                 Button("Open…") {
@@ -27,6 +32,29 @@ struct bmdApp: App {
                     appState.clearRecents()
                 }
             }
+
+            CommandGroup(after: .toolbar) {
+                Divider()
+                Button("Zoom In") {
+                    preferences.zoomIn()
+                }
+                .keyboardShortcut("+", modifiers: .command)
+
+                Button("Zoom Out") {
+                    preferences.zoomOut()
+                }
+                .keyboardShortcut("-", modifiers: .command)
+
+                Button("Actual Size") {
+                    preferences.resetZoom()
+                }
+                .keyboardShortcut("0", modifiers: .command)
+            }
+        }
+
+        Settings {
+            SettingsView()
+                .environmentObject(preferences)
         }
     }
 }

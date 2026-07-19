@@ -2,7 +2,7 @@ import Foundation
 
 struct BookmarkItem: Identifiable, Codable, Hashable {
     var id: String { path }
-    /// Absolute path string (v1; security-scoped bookmarks in phase 2).
+    /// Absolute path string (v1; directory bookmarks only if sandboxing is added later).
     var path: String
     var displayName: String
     var isDirectory: Bool

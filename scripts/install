@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+repository_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+configuration="${BMD_CONFIGURATION:-Debug}"
+destination="${BMD_INSTALL_PATH:-/Applications/bmd.app}"
+set_default=0
+
+if [[ "${1:-}" == "--set-default" ]]; then
+  set_default=1
+elif [[ $# -gt 0 ]]; then
+  echo "Usage: scripts/install [--set-default]" >&2
+  exit 64
+fi
+
+cd "${repository_root}"
+BMD_SKIP_AUTO_INSTALL=1 xcodebuild -quiet \
+  -scheme bmd \
+  -configuration "${configuration}" \
+  -derivedDataPath build \
+  build
+
+"${repository_root}/scripts/install-built-app" \
+  "${repository_root}/build/Build/Products/${configuration}/bmd.app" \
+  "${destination}"
+
+if [[ ${set_default} -eq 1 ]]; then
+  helper_directory="$(mktemp -d)"
+  trap 'rm -rf "${helper_directory}"' EXIT
+  xcrun swiftc -parse-as-library \
+    "${repository_root}/scripts/set-default-markdown.swift" \
+    -framework AppKit \
+    -framework UniformTypeIdentifiers \
+    -o "${helper_directory}/set-default-markdown"
+  "${helper_directory}/set-default-markdown" "${destination}"
+fi

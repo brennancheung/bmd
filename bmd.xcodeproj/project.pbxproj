@@ -12,8 +12,21 @@
 		A33852BEB3704FA4A93D8B48 /* RecentStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADF1F422B8014C0BAC2864E9 /* RecentStore.swift */; };
 		CC00DDAD34A347B89E44AA01 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA9722289FBC47E4B79C1360 /* ContentView.swift */; };
 		A49FA11F174A4644B5C83CFB /* MarkdownWebView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D57F331249084A8C8943E707 /* MarkdownWebView.swift */; };
+		B4D000000000000000000001 /* LocalAssetSchemeHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4D000000000000000000002 /* LocalAssetSchemeHandler.swift */; };
+		B4D000000000000000000003 /* AppPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4D000000000000000000004 /* AppPreferences.swift */; };
+		B4D000000000000000000005 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4D000000000000000000006 /* SettingsView.swift */; };
 		35B57B161C744602B42DEBB8 /* viewer in Resources */ = {isa = PBXBuildFile; fileRef = E22FBBDE87374F42A3C940FB /* viewer */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		B4D000000000000000000009 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A10000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A10000000000000000000002;
+			remoteInfo = bmd;
+		};
+/* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
 		452C3851279F4939B6737528 /* bmdApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = bmdApp.swift; sourceTree = "<group>"; };
@@ -21,6 +34,9 @@
 		ADF1F422B8014C0BAC2864E9 /* RecentStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecentStore.swift; sourceTree = "<group>"; };
 		AA9722289FBC47E4B79C1360 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		D57F331249084A8C8943E707 /* MarkdownWebView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownWebView.swift; sourceTree = "<group>"; };
+		B4D000000000000000000002 /* LocalAssetSchemeHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalAssetSchemeHandler.swift; sourceTree = "<group>"; };
+		B4D000000000000000000004 /* AppPreferences.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppPreferences.swift; sourceTree = "<group>"; };
+		B4D000000000000000000006 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		A10000000000000000000006 /* bmd.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = bmd.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		16457A4A05BD453DA86E0833 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		CC0FF0A58B5E4455B8F33BC5 /* bmd.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = bmd.entitlements; sourceTree = "<group>"; };
@@ -63,6 +79,9 @@
 				ADF1F422B8014C0BAC2864E9 /* RecentStore.swift */,
 				AA9722289FBC47E4B79C1360 /* ContentView.swift */,
 				D57F331249084A8C8943E707 /* MarkdownWebView.swift */,
+				B4D000000000000000000002 /* LocalAssetSchemeHandler.swift */,
+				B4D000000000000000000004 /* AppPreferences.swift */,
+				B4D000000000000000000006 /* SettingsView.swift */,
 				16457A4A05BD453DA86E0833 /* Info.plist */,
 				CC0FF0A58B5E4455B8F33BC5 /* bmd.entitlements */,
 			);
@@ -70,6 +89,21 @@
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
+
+/* Begin PBXAggregateTarget section */
+		B4D000000000000000000008 /* Install bmd */ = {
+			isa = PBXAggregateTarget;
+			buildConfigurationList = B4D00000000000000000000B /* Build configuration list for PBXAggregateTarget "Install bmd" */;
+			buildPhases = (
+				B4D000000000000000000007 /* Install bmd in Applications */,
+			);
+			dependencies = (
+				B4D00000000000000000000A /* PBXTargetDependency */,
+			);
+			name = "Install bmd";
+			productName = "Install bmd";
+		};
+/* End PBXAggregateTarget section */
 
 /* Begin PBXNativeTarget section */
 		A10000000000000000000002 /* bmd */ = {
@@ -113,6 +147,7 @@
 			projectRoot = "";
 			targets = (
 				A10000000000000000000002 /* bmd */,
+				B4D000000000000000000008 /* Install bmd */,
 			);
 		};
 /* End PBXProject section */
@@ -128,6 +163,26 @@
 		};
 /* End PBXResourcesBuildPhase section */
 
+/* Begin PBXShellScriptBuildPhase section */
+		B4D000000000000000000007 /* Install bmd in Applications */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+				"$(BUILT_PRODUCTS_DIR)/bmd.app",
+			);
+			name = "Install bmd in Applications";
+			outputPaths = (
+				/Applications/bmd.app,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "if [ \"${BMD_SKIP_AUTO_INSTALL:-0}\" != \"1\" ]; then\n  \"$SRCROOT/scripts/install-built-app\" \"$BUILT_PRODUCTS_DIR/bmd.app\"\nfi\n";
+		};
+/* End PBXShellScriptBuildPhase section */
+
 /* Begin PBXSourcesBuildPhase section */
 		A10000000000000000000003 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
@@ -138,10 +193,21 @@
 				A33852BEB3704FA4A93D8B48 /* RecentStore.swift in Sources */,
 				CC00DDAD34A347B89E44AA01 /* ContentView.swift in Sources */,
 				A49FA11F174A4644B5C83CFB /* MarkdownWebView.swift in Sources */,
+				B4D000000000000000000001 /* LocalAssetSchemeHandler.swift in Sources */,
+				B4D000000000000000000003 /* AppPreferences.swift in Sources */,
+				B4D000000000000000000005 /* SettingsView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		B4D00000000000000000000A /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A10000000000000000000002 /* bmd */;
+			targetProxy = B4D000000000000000000009 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		A1000000000000000000000F /* Debug */ = {
@@ -184,9 +250,9 @@
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
-				ENABLE_APP_SANDBOX = YES;
+				ENABLE_APP_SANDBOX = NO;
 				ENABLE_HARDENED_RUNTIME = YES;
-				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = NO;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = bmd/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -208,9 +274,9 @@
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
-				ENABLE_APP_SANDBOX = YES;
+				ENABLE_APP_SANDBOX = NO;
 				ENABLE_HARDENED_RUNTIME = YES;
-				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = NO;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = bmd/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -222,6 +288,20 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.brennan.bmd;
 				PRODUCT_NAME = bmd;
 				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		B4D00000000000000000000C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		B4D00000000000000000000D /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Release;
 		};
@@ -242,6 +322,15 @@
 			buildConfigurations = (
 				A10000000000000000000011 /* Debug */,
 				A10000000000000000000012 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		B4D00000000000000000000B /* Build configuration list for PBXAggregateTarget "Install bmd" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B4D00000000000000000000C /* Debug */,
+				B4D00000000000000000000D /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

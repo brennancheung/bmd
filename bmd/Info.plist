@@ -46,8 +46,6 @@
 				<string>com.unknown.md</string>
 				<string>io.typora.markdown</string>
 				<string>net.ia.markdown</string>
-				<string>public.plain-text</string>
-				<string>public.text</string>
 			</array>
 			<key>CFBundleTypeExtensions</key>
 			<array>

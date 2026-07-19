@@ -5,23 +5,62 @@
   --muted: #656d76;
   --border: #d0d7de;
   --code-bg: #f6f8fa;
+  --code-comment: #6e7781;
+  --code-keyword: #cf222e;
+  --code-string: #0a3069;
+  --code-number: #0550ae;
+  --code-title: #8250df;
+  --code-variable: #953800;
   --link: #0969da;
   --table-stripe: #f6f8fa;
-  --max-prose: 46rem;
+  --diagram-bg: #f6f8fa;
+  --error: #cf222e;
+  --error-bg: #ffebe9;
+  --max-prose: 820px;
+  --max-table: 1200px;
+  --page-gutter: 1.75rem;
   --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
   --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-appearance]) {
     --bg: #0d1117;
     --fg: #e6edf3;
     --muted: #8b949e;
     --border: #30363d;
     --code-bg: #161b22;
+    --code-comment: #8b949e;
+    --code-keyword: #ff7b72;
+    --code-string: #a5d6ff;
+    --code-number: #79c0ff;
+    --code-title: #d2a8ff;
+    --code-variable: #ffa657;
     --link: #2f81f7;
     --table-stripe: #161b22;
+    --diagram-bg: #161b22;
+    --error: #ff7b72;
+    --error-bg: #3d1518;
   }
+}
+
+:root[data-appearance="dark"] {
+  --bg: #0d1117;
+  --fg: #e6edf3;
+  --muted: #8b949e;
+  --border: #30363d;
+  --code-bg: #161b22;
+  --code-comment: #8b949e;
+  --code-keyword: #ff7b72;
+  --code-string: #a5d6ff;
+  --code-number: #79c0ff;
+  --code-title: #d2a8ff;
+  --code-variable: #ffa657;
+  --link: #2f81f7;
+  --table-stripe: #161b22;
+  --diagram-bg: #161b22;
+  --error: #ff7b72;
+  --error-bg: #3d1518;
 }
 
 * {
@@ -41,6 +80,7 @@ body {
   font-family: var(--font);
   font-size: 16px;
   line-height: 1.6;
+  overflow-x: hidden;
 }
 
 .empty {
@@ -66,11 +106,23 @@ body {
   font-size: 0.95rem;
 }
 
-/* Prose column for readable text; tables escape via .table-wrap */
+/*
+ * The middle grid track is the readable prose measure. Wide elements can span
+ * into the right track while keeping the same left edge as the prose.
+ */
 .markdown-body {
-  max-width: var(--max-prose);
-  margin: 0 auto;
-  padding: 1.5rem 1.75rem 3rem;
+  display: grid;
+  grid-template-columns:
+    minmax(var(--page-gutter), 1fr)
+    minmax(0, var(--max-prose))
+    minmax(var(--page-gutter), 1fr);
+  width: 100%;
+  padding: 1.5rem 0 3rem;
+}
+
+.markdown-body > * {
+  grid-column: 2;
+  min-width: 0;
 }
 
 .markdown-body > *:first-child {
@@ -125,6 +177,58 @@ body {
   font-size: 0.85rem;
 }
 
+/* highlight.js tokens use the same palette as the surrounding appearance. */
+.hljs-comment,
+.hljs-quote {
+  color: var(--code-comment);
+  font-style: italic;
+}
+
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-literal,
+.hljs-type {
+  color: var(--code-keyword);
+}
+
+.hljs-string,
+.hljs-regexp,
+.hljs-attribute,
+.hljs-symbol,
+.hljs-bullet {
+  color: var(--code-string);
+}
+
+.hljs-number,
+.hljs-meta,
+.hljs-built_in,
+.hljs-link {
+  color: var(--code-number);
+}
+
+.hljs-title,
+.hljs-section,
+.hljs-title.class_,
+.hljs-title.function_ {
+  color: var(--code-title);
+  font-weight: 600;
+}
+
+.hljs-variable,
+.hljs-template-variable,
+.hljs-params,
+.hljs-property {
+  color: var(--code-variable);
+}
+
+.hljs-emphasis {
+  font-style: italic;
+}
+
+.hljs-strong {
+  font-weight: 700;
+}
+
 .markdown-body blockquote {
   margin: 1em 0;
   padding: 0 1em;
@@ -133,20 +237,61 @@ body {
 }
 
 .markdown-body img {
+  display: block;
   max-width: 100%;
   height: auto;
+  margin: 1rem auto;
+  border-radius: 8px;
 }
 
-/* Tables: full useful width + horizontal scroll when needed */
+.markdown-body > svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 1rem auto;
+}
+
+.katex-display {
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0.35rem 0;
+}
+
+.mermaid-diagram {
+  width: 100%;
+  margin: 1.25rem 0;
+  padding: 1rem;
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--diagram-bg);
+}
+
+.mermaid-diagram svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 0 auto;
+}
+
+.diagram-error {
+  color: var(--error);
+  background: var(--error-bg);
+}
+
+.diagram-error pre {
+  margin-bottom: 0;
+  white-space: pre-wrap;
+}
+
+/* Tables align with prose on the left and may grow into the right margin. */
 .table-wrap {
-  width: 100vw;
-  max-width: 100vw;
-  position: relative;
-  left: 50%;
-  right: 50%;
-  margin-left: -50vw;
-  margin-right: -50vw;
-  padding: 0 1.75rem;
+  grid-column: 2 / 4;
+  justify-self: start;
+  width: 100%;
+  max-width: var(--max-table);
+  padding-right: var(--page-gutter);
   overflow-x: auto;
   margin-top: 1em;
   margin-bottom: 1em;
@@ -182,12 +327,6 @@ body {
 }
 
 .markdown-body .error {
-  color: #cf222e;
+  color: var(--error);
   white-space: pre-wrap;
-}
-
-@media (prefers-color-scheme: dark) {
-  .markdown-body .error {
-    color: #ff7b72;
-  }
 }
