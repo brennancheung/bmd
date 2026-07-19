@@ -1,0 +1,53 @@
+#!/usr/bin/env bash
+# bmd — open Markdown in the bmd app (easy agent / shell entrypoint)
+set -euo pipefail
+
+find_app() {
+  if [[ -n "${BMD_APP:-}" && -d "${BMD_APP}" ]]; then
+    echo "${BMD_APP}"
+    return 0
+  fi
+  local candidates=(
+    "/Applications/bmd.app"
+    "${HOME}/Applications/bmd.app"
+    "/Users/brennan/code/bmd/build/Build/Products/Debug/bmd.app"
+    "/Users/brennan/code/bmd/build/Build/Products/Release/bmd.app"
+  )
+  local c
+  for c in "${candidates[@]}"; do
+    if [[ -d "$c" ]]; then
+      echo "$c"
+      return 0
+    fi
+  done
+  # Spotlight / Launch Services
+  local sp
+  sp="$(mdfind 'kMDItemCFBundleIdentifier == "com.brennan.bmd"' 2>/dev/null | head -1 || true)"
+  if [[ -n "$sp" && -d "$sp" ]]; then
+    echo "$sp"
+    return 0
+  fi
+  return 1
+}
+
+if ! APP="$(find_app)"; then
+  echo "bmd: app not found. Build bmd.xcodeproj or set BMD_APP=/path/to/bmd.app" >&2
+  exit 1
+fi
+
+if [[ $# -eq 0 ]]; then
+  open -a "$APP"
+  exit 0
+fi
+
+# Resolve paths and pass to the app (registers as recents when opened).
+args=()
+for arg in "$@"; do
+  if [[ -e "$arg" ]]; then
+    args+=("$(cd "$(dirname "$arg")" && pwd)/$(basename "$arg")")
+  else
+    args+=("$arg")
+  fi
+done
+
+open -a "$APP" "${args[@]}"
