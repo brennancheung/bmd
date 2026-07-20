@@ -24,6 +24,7 @@ enum MarkdownFolderDiscovery {
     static let supportedExtensions: Set<String> = [
         "md", "markdown", "mdown", "mkd", "mdwn",
     ]
+    static let defaultIgnoredDirectoryNames: Set<String> = ["node_modules"]
 
     static func changedFiles(
         previous: [WatchedMarkdownFile],
@@ -57,9 +58,14 @@ enum MarkdownFolderDiscovery {
 struct MarkdownFolderScanner {
     var fileManager = FileManager.default
 
-    func scan(_ root: URL) -> [WatchedMarkdownFile] {
+    func scan(
+        _ root: URL,
+        ignoring ignoredDirectoryNames: Set<String> = MarkdownFolderDiscovery
+            .defaultIgnoredDirectoryNames
+    ) -> [WatchedMarkdownFile] {
         let normalizedRoot = root.standardizedFileURL
         let keys: [URLResourceKey] = [
+            .isDirectoryKey,
             .isRegularFileKey,
             .contentModificationDateKey,
             .fileSizeKey,
@@ -74,10 +80,17 @@ struct MarkdownFolderScanner {
 
         var files: [WatchedMarkdownFile] = []
         for case let fileURL as URL in enumerator {
+            let values = try? fileURL.resourceValues(forKeys: Set(keys))
+            if values?.isDirectory == true,
+               ignoredDirectoryNames.contains(fileURL.lastPathComponent.lowercased()) {
+                enumerator.skipDescendants()
+                continue
+            }
+
             guard MarkdownFolderDiscovery.supportedExtensions.contains(
                 fileURL.pathExtension.lowercased()
             ),
-            let values = try? fileURL.resourceValues(forKeys: Set(keys)),
+            let values,
             values.isRegularFile == true else {
                 continue
             }
@@ -109,6 +122,7 @@ final class MarkdownFolderWatcher {
     private let queue = DispatchQueue(label: "com.brennan.bmd.folder-watcher")
     private let scanner: MarkdownFolderScanner
     private var roots: [URL] = []
+    private var ignoredDirectoryNames = MarkdownFolderDiscovery.defaultIgnoredDirectoryNames
     private var previousFilesByRoot: [String: [WatchedMarkdownFile]] = [:]
     private var stream: FSEventStreamRef?
 
@@ -120,7 +134,11 @@ final class MarkdownFolderWatcher {
         stopStream()
     }
 
-    func watch(folders: [URL]) {
+    func watch(
+        folders: [URL],
+        ignoring ignoredDirectoryNames: Set<String> = MarkdownFolderDiscovery
+            .defaultIgnoredDirectoryNames
+    ) {
         let normalizedFolders = Array(
             Dictionary(
                 folders.map { ($0.standardizedFileURL.path, $0.standardizedFileURL) },
@@ -132,10 +150,11 @@ final class MarkdownFolderWatcher {
             guard let self else { return }
             stopStream()
             roots = normalizedFolders
+            self.ignoredDirectoryNames = Set(ignoredDirectoryNames.map { $0.lowercased() })
             previousFilesByRoot = [:]
 
             for root in roots {
-                let files = scanner.scan(root)
+                let files = scanner.scan(root, ignoring: self.ignoredDirectoryNames)
                 previousFilesByRoot[root.path] = files
                 publish(
                     WatchedFolderUpdate(
@@ -198,7 +217,7 @@ final class MarkdownFolderWatcher {
 
     private func scanAndPublishChanges() {
         for root in roots {
-            let currentFiles = scanner.scan(root)
+            let currentFiles = scanner.scan(root, ignoring: ignoredDirectoryNames)
             let previousFiles = previousFilesByRoot[root.path] ?? []
             let changedFiles = MarkdownFolderDiscovery.changedFiles(
                 previous: previousFiles,

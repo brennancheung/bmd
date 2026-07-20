@@ -1,0 +1,68 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+repository_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+test_output="${repository_root}/build/tests"
+
+mkdir -p "${test_output}"
+cd "${repository_root}"
+
+BMD_SKIP_AUTO_INSTALL=1 xcodebuild -quiet \
+  -scheme bmd \
+  -configuration Debug \
+  -derivedDataPath build \
+  build
+
+xcrun swiftc -parse-as-library \
+  bmd/LocalAssetSchemeHandler.swift tests/LocalAssetResolverTests.swift \
+  -framework WebKit -framework UniformTypeIdentifiers \
+  -o "${test_output}/LocalAssetResolverTests"
+"${test_output}/LocalAssetResolverTests"
+
+xcrun swiftc -parse-as-library \
+  bmd/AppPreferences.swift tests/AppPreferencesTests.swift \
+  -framework Combine \
+  -o "${test_output}/AppPreferencesTests"
+"${test_output}/AppPreferencesTests"
+
+xcrun swiftc -parse-as-library \
+  bmd/AppPreferences.swift bmd/WindowPlacement.swift tests/WindowPlacementTests.swift \
+  -framework AppKit -framework SwiftUI -framework Combine \
+  -o "${test_output}/WindowPlacementTests"
+"${test_output}/WindowPlacementTests"
+
+xcrun swiftc -parse-as-library \
+  bmd/FolderWatcher.swift tests/FolderWatcherTests.swift \
+  -framework CoreServices \
+  -o "${test_output}/FolderWatcherTests"
+"${test_output}/FolderWatcherTests"
+
+xcrun swiftc -parse-as-library \
+  bmd/CurrentFileWatcher.swift tests/CurrentFileWatcherTests.swift \
+  -framework CoreServices \
+  -o "${test_output}/CurrentFileWatcherTests"
+"${test_output}/CurrentFileWatcherTests"
+
+xcrun swiftc -parse-as-library \
+  bmd/RecentStore.swift bmd/FolderWatcher.swift bmd/SidebarFileState.swift \
+  bmd/SidebarStateStore.swift \
+  tests/SidebarStateTests.swift \
+  -framework CoreServices \
+  -o "${test_output}/SidebarStateTests"
+"${test_output}/SidebarStateTests"
+
+xcrun swiftc -parse-as-library \
+  bmd/RecentStore.swift bmd/FolderWatcher.swift bmd/CurrentFileWatcher.swift \
+  bmd/SidebarFileState.swift bmd/SidebarStateStore.swift bmd/AppState.swift \
+  tests/AppStateIntegrationTests.swift \
+  -framework AppKit -framework Combine -framework UniformTypeIdentifiers \
+  -framework CoreServices \
+  -o "${test_output}/AppStateIntegrationTests"
+"${test_output}/AppStateIntegrationTests"
+
+BMD_APPEARANCE=light ./scripts/render-headless.swift \
+  examples/rendering-showcase.md build/headless/showcase-light.png
+BMD_APPEARANCE=dark ./scripts/render-headless.swift \
+  examples/rendering-showcase.md build/headless/showcase-dark.png
+
+echo "All bmd checks passed"

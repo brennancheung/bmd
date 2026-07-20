@@ -22,7 +22,7 @@ Primary pain points with existing Quick Look Markdown tools (esp. QLMarkdown):
 |-------|----------|
 | Single window app (SwiftUI + WKWebView) | Quick Look extension |
 | Open `.md` via Open dialog, drag-drop, `open -a bmd`, CLI `bmd` | Multi-window per file |
-| Sidebar: **recent files** + **watched folders** | Full Finder replacement |
+| Sidebar: **Watched activity** + **Recents** + **Projects** | Full Finder replacement |
 | Agents open files with this app → they land on recent stack | YAML/Rmd/Quarto science stack |
 | Web markdown, syntax, math, and Mermaid | Full editing workflows |
 | Table-friendly CSS + centered, full-height window | App Store sandboxing/bookmarks |
@@ -32,8 +32,9 @@ Primary pain points with existing Quick Look Markdown tools (esp. QLMarkdown):
 
 ```
 Native (Swift)
-  - screen-safe window placement, sidebar, recents, watched folders
-  - recursive folder discovery and file-change activity
+  - screen-safe window placement and native reader controls
+  - global watched activity, recents, and project-opened files
+  - recursive project discovery and dedicated current-file watching
   - file access + WebKit document read root
   - pass markdown text + base directory into webview
 
@@ -51,7 +52,7 @@ Swift owns:
 
 - Which file is open  
 - Reading file bytes  
-- Recent/pin lists  
+- Watched, recent, project, and opened-file lists
 - Serving relative assets from the current file’s directory
 
 JS owns:
@@ -96,7 +97,7 @@ We studied it only to know how QL works and what to *avoid*. bmd is greenfield a
 
 - [x] Repo + handoff docs  
 - [x] SwiftUI single window  
-- [x] Sidebar recents + watched folders
+- [x] Sidebar Watched + Recents + Projects hierarchy
 - [x] WKWebView + marked  
 - [x] Open file, render, remember recents  
 - [x] Debug build succeeds (`xcodebuild -scheme bmd`)  
@@ -110,7 +111,8 @@ We studied it only to know how QL works and what to *avoid*. bmd is greenfield a
 - [x] Native View menu zoom commands (Command-plus/minus/zero)
 - [x] Stable `/Applications/bmd.app` install/update workflow
 - [x] Set bmd as the Markdown default from Settings or the installer
-- [x] Watched folders: recursively list Markdown and surface new/updated files
+- [x] Watched projects: surface created/modified files without listing every Markdown file
+- [x] Auto-refresh the current Markdown file after external changes
 - Optional folder grants/bookmarks if App Store sandboxing is added later
 - [x] Better CSS, light/dark
 - [x] Syntax highlighting with highlight.js

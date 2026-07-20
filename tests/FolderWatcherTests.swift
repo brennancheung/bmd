@@ -19,17 +19,20 @@ enum FolderWatcherTests {
 
         let nested = root.appendingPathComponent("docs/nested", isDirectory: true)
         let hidden = root.appendingPathComponent(".hidden", isDirectory: true)
+        let nodeModules = root.appendingPathComponent("node_modules/package", isDirectory: true)
         try manager.createDirectory(at: nested, withIntermediateDirectories: true)
         try manager.createDirectory(at: hidden, withIntermediateDirectories: true)
+        try manager.createDirectory(at: nodeModules, withIntermediateDirectories: true)
         try Data("root".utf8).write(to: root.appendingPathComponent("README.md"))
         try Data("nested".utf8).write(to: nested.appendingPathComponent("plan.markdown"))
         try Data("ignore".utf8).write(to: nested.appendingPathComponent("notes.txt"))
         try Data("hidden".utf8).write(to: hidden.appendingPathComponent("secret.md"))
+        try Data("dependency".utf8).write(to: nodeModules.appendingPathComponent("README.md"))
 
         let files = MarkdownFolderScanner().scan(root)
         expect(
             files.map(\.relativePath) == ["docs/nested/plan.markdown", "README.md"],
-            "the scanner should recurse, include Markdown variants, and skip hidden/non-Markdown files"
+            "the scanner should recurse while skipping node_modules, hidden, and non-Markdown files"
         )
         expect(files.allSatisfy { $0.rootPath == root.standardizedFileURL.path },
                "every result should retain its watched-folder identity")

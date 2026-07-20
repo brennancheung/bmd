@@ -1,141 +1,201 @@
-# bmd
+<p align="center">
+  <img src="assets/bmd-icon.png" width="160" alt="bmd application icon">
+</p>
 
-**Beautiful Markdown** is a dedicated macOS Markdown reader. Native shell, web
-rendering. One window, sidebar recents + watched folders. The app itself is
-always named **bmd**.
+<h1 align="center">bmd — Beautiful Markdown</h1>
 
-**Not** an editor. **Not** Quick Look (yet). **Not** Safari/Chrome.
+<p align="center">
+  A native macOS reader for the Markdown files people and coding agents keep writing.
+</p>
 
-## Why
+`bmd` is a focused Markdown viewer for macOS. It opens documents in a wide,
+readable native window, renders modern technical Markdown entirely offline, and
+watches project folders so newly generated files are already waiting in the
+sidebar.
 
-Agent- and human-written Markdown is painful in Finder + Quick Look: narrow previews, bad tables, constant path-hunting. **bmd** opens `.md` files in a wide, resizable WKWebView and keeps a recent stack agents can feed by opening files after they write them.
+The application is a reader, not an editor. The repository and product name are
+**Beautiful Markdown**; the installed application is simply **bmd**.
 
-## Status
+> **Status:** Early development. The core reader and daily workflow work on
+> macOS 14 and newer, but releases, signing, notarization, and a public license
+> have not been finalized.
 
-Working proof of concept with native navigation and a fully offline rich
-Markdown renderer.
+## Why bmd exists
 
-Full intent and handoff notes: [`docs/CONTEXT.md`](docs/CONTEXT.md)  
-Plan: [`docs/PLAN.md`](docs/PLAN.md)
+Markdown is often produced somewhere other than the app used to read it. Coding
+agents write plans and reports into project folders. Commands generate logs and
+documentation. Finder and Quick Look make those documents possible to inspect,
+but the repeated navigation, narrow layouts, clipped tables, and manual refresh
+cycle add friction.
+
+`bmd` is designed around that handoff:
+
+1. Add the folders where Markdown is produced.
+2. Let tools and agents create or update files normally.
+3. Open `bmd` and select the latest file from **Watched**.
+4. Keep reading while the current document refreshes automatically.
+
+## Highlights
+
+- **Native macOS shell.** SwiftUI navigation with a `WKWebView` reading surface;
+  no Electron and no external browser window.
+- **Wide by default.** New windows open centered at the display's full visible
+  height. Width uses semantic presets and remains safe when monitors change.
+- **Project-aware watching.** Recursive FSEvents monitoring surfaces created and
+  modified Markdown without listing every file in every project.
+- **Live current document.** The open file automatically reloads when another
+  process replaces or modifies it.
+- **Rich offline rendering.** Bundled marked, highlight.js, KaTeX, and Mermaid
+  handle GFM-style Markdown, syntax highlighting, math, and diagrams without a
+  network connection.
+- **Local assets.** Relative PNG, JPEG, GIF, WebP, and SVG references resolve
+  from the document directory through a bounded read-only URL handler.
+- **System appearance.** Light and dark themes follow macOS automatically, with
+  manual overrides in Settings.
+- **Reader controls.** Command-plus, Command-minus, and Command-zero control
+  zoom. Reading width, table width, sidebar counts, and watch ignores are
+  configurable.
+
+## Sidebar model
+
+The sidebar separates three different questions instead of mixing them into one
+large file tree:
+
+| Section | What it answers |
+|---|---|
+| **Watched** | Which Markdown files were created, modified, or opened most recently? |
+| **Recents** | Which files did I open most recently across the app? |
+| **Projects** | Which files have I opened inside each added project? |
+
+The Watched section shows five files by default. Projects deliberately show only
+opened files; recursive scanning is used for change detection, not as a Finder
+replacement. Right-click any file row to copy its complete path or reveal it in
+Finder.
+
+`node_modules` is ignored by default. Hidden folders and application packages
+are always skipped. Additional exact folder names can be added in Settings.
 
 ## Requirements
 
-- macOS 14+  
-- Xcode 15+ (developed against Xcode 26 / recent toolchain)
+- macOS 14 Sonoma or newer
+- Xcode 15 or newer to build from source
 
-## Build & run
+## Build and install
+
+Clone the repository and open the Xcode project:
 
 ```bash
-cd /Users/brennan/code/bmd
+git clone https://github.com/brennancheung/bmd.git
+cd bmd
 open bmd.xcodeproj
 ```
 
-Or:
+Or build from the command line:
 
 ```bash
 xcodebuild -scheme bmd -configuration Debug -derivedDataPath build build
 open build/Build/Products/Debug/bmd.app
 ```
 
-Every successful Run, Test, or Profile scheme build also updates the stable
-`/Applications/bmd.app` copy and registers it with Launch Services. Archives and
-static analysis do not modify the installed app. To build, install, and ask
-macOS to make bmd the default for Markdown in one command:
+The shared Xcode scheme keeps a stable development build at
+`/Applications/bmd.app`. The same update can be performed explicitly:
+
+```bash
+./scripts/install
+```
+
+To install and ask macOS to make bmd the default application for common Markdown
+types:
 
 ```bash
 ./scripts/install --set-default
 ```
 
-The default association is attached to the stable `com.brennan.bmd` bundle
-identifier. Replacing `/Applications/bmd.app` with a newer build keeps that
-association. The same action is available later in bmd → Settings.
+The file association is attached to the stable `com.brennan.bmd` bundle
+identifier, so replacing `/Applications/bmd.app` with a new build does not
+normally require rebinding the default application.
 
-## CLI
+## Open files from agents and scripts
 
-After the app exists (build or `/Applications/bmd.app`):
-
-```bash
-# from repo
-./scripts/bmd path/to/file.md
-
-# optional install
-ln -sf /Users/brennan/code/bmd/scripts/bmd /usr/local/bin/bmd
-bmd path/to/file.md
-```
-
-## Headless rendering
-
-Render Markdown through the same bundled HTML, CSS, marked.js, and system WebKit
-without launching `bmd` or creating a visible window:
+The repository includes a small shell entry point:
 
 ```bash
-./scripts/render-headless.swift examples/welcome.md
+./scripts/bmd path/to/report.md
 ```
 
-Use the checked-in rendering showcase to exercise syntax highlighting, math,
-Mermaid, linked PNG/SVG files, inline SVG, tables, and failure states:
+Optionally place it on your `PATH`:
+
+```bash
+ln -sf "$PWD/scripts/bmd" /usr/local/bin/bmd
+bmd path/to/report.md
+```
+
+Opening a file places it at the top of Watched and Recents. If the file belongs
+to an added project, it also becomes available under that project.
+
+## Rendering support
+
+The checked-in showcase covers the formats used by technical and agent-authored
+documents:
+
+- headings, lists, blockquotes, links, and GFM tables
+- fenced code with language-aware syntax highlighting
+- inline and display math through KaTeX
+- Mermaid diagrams with visible local error states
+- inline SVG and relative SVG/raster images
+- light and dark themes
+
+The same viewer can render headlessly for regression checks without opening an
+application window:
 
 ```bash
 BMD_APPEARANCE=light ./scripts/render-headless.swift \
   examples/rendering-showcase.md build/headless/showcase-light.png
+
 BMD_APPEARANCE=dark ./scripts/render-headless.swift \
   examples/rendering-showcase.md build/headless/showcase-dark.png
 ```
 
-The default PNG is written to `build/headless/<file-name>.png`. Pass a second
-argument to choose a different output path:
+## Architecture
 
-```bash
-./scripts/render-headless.swift report.md /tmp/report.png
+```text
+SwiftUI application
+├── window placement and native commands
+├── Watched, Recents, and Projects state
+├── recursive project watcher and current-file watcher
+├── UserDefaults persistence
+└── WKWebView bridge
+    ├── bundled Markdown renderer
+    ├── syntax, math, and diagram renderers
+    └── bounded local-asset URL scheme
 ```
 
-## Stack
+The direct-distribution build is intentionally not App Sandboxed. A file-only
+Powerbox grant cannot read sibling images referenced by a Markdown document.
+WebKit still receives no general `file:` access: local resources are served only
+after normalized-path containment checks against the current document directory.
 
-- SwiftUI app target **bmd**  
-- WKWebView + bundled marked, highlight.js, KaTeX, and Mermaid
-- UserDefaults persistence for recents, watched folders, appearance, reading widths, and zoom
-- Recursive FSEvents folder watching with per-folder “New & Updated” activity
+## Development and verification
 
-Relative local assets are served to WebKit through a read-only handler bounded
-to the current Markdown directory. The direct-distribution build is not App
-Sandboxed because a file-only sandbox grant cannot read sibling images.
-
-## Verification
+Run the complete native, state, watcher, asset-containment, and rendering checks:
 
 ```bash
-# Native build
-xcodebuild -scheme bmd -configuration Debug -derivedDataPath build build
-
-# Local-asset containment regression test
-mkdir -p build/tests
-xcrun swiftc -parse-as-library \
-  bmd/LocalAssetSchemeHandler.swift tests/LocalAssetResolverTests.swift \
-  -framework WebKit -framework UniformTypeIdentifiers \
-  -o build/tests/local-asset-resolver-tests
-build/tests/local-asset-resolver-tests
-
-# Preferences persistence and zoom behavior
-xcrun swiftc -parse-as-library \
-  bmd/AppPreferences.swift tests/AppPreferencesTests.swift \
-  -framework Combine \
-  -o build/tests/app-preferences-tests
-build/tests/app-preferences-tests
-
-# Screen-safe semantic window placement
-xcrun swiftc -parse-as-library \
-  bmd/AppPreferences.swift bmd/WindowPlacement.swift tests/WindowPlacementTests.swift \
-  -framework AppKit -framework SwiftUI -framework Combine \
-  -o build/tests/window-placement-tests
-build/tests/window-placement-tests
-
-# Recursive folder discovery and activity watching
-xcrun swiftc -parse-as-library \
-  bmd/FolderWatcher.swift tests/FolderWatcherTests.swift \
-  -framework CoreServices \
-  -o build/tests/folder-watcher-tests
-build/tests/folder-watcher-tests
+./scripts/test
 ```
+
+Useful project references:
+
+- [`docs/CONTEXT.md`](docs/CONTEXT.md) — product intent and architecture handoff
+- [`docs/PLAN.md`](docs/PLAN.md) — current milestones and roadmap
+- [`examples/rendering-showcase.md`](examples/rendering-showcase.md) — rendering fixture
+
+## Roadmap
+
+Near-term work includes interaction polish, larger real-world project testing,
+release packaging, code signing and notarization, and deciding whether a Quick
+Look extension belongs in the product.
 
 ## License
 
-Private / TBD.
+A public license has not been selected yet. Until a `LICENSE` file is added, the
+source is available for inspection but no additional rights are granted.

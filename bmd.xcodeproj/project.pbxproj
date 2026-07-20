@@ -17,6 +17,10 @@
 		B4D000000000000000000005 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4D000000000000000000006 /* SettingsView.swift */; };
 		B4D00000000000000000000E /* FolderWatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4D00000000000000000000F /* FolderWatcher.swift */; };
 		B4D000000000000000000010 /* WindowPlacement.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4D000000000000000000011 /* WindowPlacement.swift */; };
+		B4D000000000000000000012 /* CurrentFileWatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4D000000000000000000013 /* CurrentFileWatcher.swift */; };
+		B4D000000000000000000014 /* SidebarStateStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4D000000000000000000015 /* SidebarStateStore.swift */; };
+		B4D000000000000000000016 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B4D000000000000000000017 /* Assets.xcassets */; };
+		B4D000000000000000000018 /* SidebarFileState.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4D000000000000000000019 /* SidebarFileState.swift */; };
 		35B57B161C744602B42DEBB8 /* viewer in Resources */ = {isa = PBXBuildFile; fileRef = E22FBBDE87374F42A3C940FB /* viewer */; };
 /* End PBXBuildFile section */
 
@@ -41,6 +45,10 @@
 		B4D000000000000000000006 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		B4D00000000000000000000F /* FolderWatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FolderWatcher.swift; sourceTree = "<group>"; };
 		B4D000000000000000000011 /* WindowPlacement.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowPlacement.swift; sourceTree = "<group>"; };
+		B4D000000000000000000013 /* CurrentFileWatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CurrentFileWatcher.swift; sourceTree = "<group>"; };
+		B4D000000000000000000015 /* SidebarStateStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidebarStateStore.swift; sourceTree = "<group>"; };
+		B4D000000000000000000017 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		B4D000000000000000000019 /* SidebarFileState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidebarFileState.swift; sourceTree = "<group>"; };
 		A10000000000000000000006 /* bmd.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = bmd.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		16457A4A05BD453DA86E0833 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		CC0FF0A58B5E4455B8F33BC5 /* bmd.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = bmd.entitlements; sourceTree = "<group>"; };
@@ -88,6 +96,10 @@
 				B4D000000000000000000006 /* SettingsView.swift */,
 				B4D00000000000000000000F /* FolderWatcher.swift */,
 				B4D000000000000000000011 /* WindowPlacement.swift */,
+				B4D000000000000000000013 /* CurrentFileWatcher.swift */,
+				B4D000000000000000000015 /* SidebarStateStore.swift */,
+				B4D000000000000000000019 /* SidebarFileState.swift */,
+				B4D000000000000000000017 /* Assets.xcassets */,
 				16457A4A05BD453DA86E0833 /* Info.plist */,
 				CC0FF0A58B5E4455B8F33BC5 /* bmd.entitlements */,
 			);
@@ -164,6 +176,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				35B57B161C744602B42DEBB8 /* viewer in Resources */,
+				B4D000000000000000000016 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -204,6 +217,9 @@
 				B4D000000000000000000005 /* SettingsView.swift in Sources */,
 				B4D00000000000000000000E /* FolderWatcher.swift in Sources */,
 				B4D000000000000000000010 /* WindowPlacement.swift in Sources */,
+				B4D000000000000000000012 /* CurrentFileWatcher.swift in Sources */,
+				B4D000000000000000000014 /* SidebarStateStore.swift in Sources */,
+				B4D000000000000000000018 /* SidebarFileState.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -254,6 +270,7 @@
 		A10000000000000000000011 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = bmd/bmd.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
@@ -278,6 +295,7 @@
 		A10000000000000000000012 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = bmd/bmd.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;

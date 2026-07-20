@@ -31,14 +31,15 @@ struct BookmarkItem: Identifiable, Codable, Hashable {
     }
 }
 
-/// Persistence for recents and watched folders (UserDefaults path lists for v1).
+/// Persistence for recents and project folders (UserDefaults path lists for v1).
 final class RecentStore {
     static let shared = RecentStore()
 
     private let defaults: UserDefaults
     private let recentsKey = "bmd.recents"
-    private let pinsKey = "bmd.pins"
-    private let maxRecents = 40
+    // Keep the original key so existing pinned folders migrate into Projects.
+    private let projectsKey = "bmd.pins"
+    private let maxRecents = 100
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
@@ -48,8 +49,8 @@ final class RecentStore {
         decode(key: recentsKey)
     }
 
-    func loadPins() -> [BookmarkItem] {
-        decode(key: pinsKey)
+    func loadProjects() -> [BookmarkItem] {
+        decode(key: projectsKey)
     }
 
     @discardableResult
@@ -80,20 +81,20 @@ final class RecentStore {
     }
 
     @discardableResult
-    func pinFolder(_ url: URL) -> [BookmarkItem] {
-        var items = loadPins()
+    func addProject(_ url: URL) -> [BookmarkItem] {
+        var items = loadProjects()
         let path = url.standardizedFileURL.path
         guard !items.contains(where: { $0.path == path }) else { return items }
         items.insert(BookmarkItem.folder(url), at: 0)
-        save(items, key: pinsKey)
+        save(items, key: projectsKey)
         return items
     }
 
     @discardableResult
-    func unpin(_ item: BookmarkItem) -> [BookmarkItem] {
-        var items = loadPins()
+    func removeProject(_ item: BookmarkItem) -> [BookmarkItem] {
+        var items = loadProjects()
         items.removeAll { $0.id == item.id }
-        save(items, key: pinsKey)
+        save(items, key: projectsKey)
         return items
     }
 

@@ -4,7 +4,7 @@
 
 1. Single `Window` scene titled **bmd**  
 2. `NavigationSplitView`:
-   - Sidebar: Recents, watched folders, and per-folder activity
+   - Sidebar: global Watched activity, Recents, and project-opened files
    - Detail: `MarkdownWebView`  
 3. Open Markdown → read UTF-8 → inject into marked → show HTML  
 4. On open: push path onto recent stack (dedupe, cap list)  
@@ -13,7 +13,7 @@
 
 ## Default UX choices
 
-- New windows use the current display's full visible height and a centered 1480 pt wide preset
+- New windows use the current display's full visible height and a centered 1680 pt Wide preset
 - Window placement is recalculated from the available screens; absolute coordinates are not persisted
 - Default zoom 125%; semantic width preset, zoom, prose width, and table width are configurable
 - Appearance follows the macOS system setting by default, with explicit light/dark overrides
@@ -34,13 +34,16 @@
 
 ## Watched-folder workflow
 
-- [x] Persist folders added from the sidebar, Open panel, drop target, or prior pins
+- [x] Persist projects added from the sidebar, Open panel, drop target, or legacy pins
 - [x] Recursively scan `.md`, `.markdown`, `.mdown`, `.mkd`, and `.mdwn` files
-- [x] Watch added folders with recursive FSEvents
-- [x] Show new and updated files in a separate per-folder activity section
-- [x] Keep the complete folder inventory available without polluting global recents
-- [x] Clear a file's activity indicator when it is opened
-- [ ] Add optional folder-level filters and activity retention controls after real-world use
+- [x] Ignore `node_modules` by default and support configurable exact-name rules
+- [x] Watch projects with recursive FSEvents
+- [x] Show created, modified, and currently open files in one global Watched section
+- [x] Limit Watched and Recents independently through Settings
+- [x] Show only opened files under each project
+- [x] Auto-refresh the current file after external writes and atomic replacements
+- [x] Provide Copy Path and Reveal in Finder context actions
+- [ ] Add optional glob rules and activity retention controls after real-world use
 
 ## File access (sandbox)
 

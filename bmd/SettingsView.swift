@@ -53,6 +53,29 @@ struct SettingsView: View {
                     .foregroundStyle(.secondary)
             }
 
+            Section("Sidebar & Watching") {
+                countStepper(
+                    title: "Watched files",
+                    value: $preferences.watchedFileLimit,
+                    range: AppPreferences.Limits.watchedFileLimit
+                )
+                countStepper(
+                    title: "Recent files",
+                    value: $preferences.recentFileLimit,
+                    range: AppPreferences.Limits.recentFileLimit
+                )
+                LabeledContent("Ignored folders") {
+                    TextField(
+                        "node_modules, generated",
+                        text: $preferences.ignoredDirectoryNamesText
+                    )
+                    .frame(width: 260)
+                }
+                Text("Use commas to separate exact folder names. Hidden folders and app packages are always ignored.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
             Section("Default App") {
                 Button("Make bmd the Default Markdown App") {
                     setAsDefaultMarkdownApp()
@@ -74,8 +97,23 @@ struct SettingsView: View {
             }
         }
         .formStyle(.grouped)
-        .frame(width: 520, height: 580)
+        .frame(width: 560, height: 700)
         .padding(.vertical, 12)
+    }
+
+    @ViewBuilder
+    private func countStepper(
+        title: String,
+        value: Binding<Int>,
+        range: ClosedRange<Int>
+    ) -> some View {
+        LabeledContent(title) {
+            Stepper(value: value, in: range) {
+                Text("\(value.wrappedValue)")
+                    .monospacedDigit()
+                    .frame(width: 28, alignment: .trailing)
+            }
+        }
     }
 
     @ViewBuilder
