@@ -49,7 +49,7 @@ final class AppPreferences: ObservableObject {
         static let zoomPercent = 125.0
         static let proseWidth = 820.0
         static let tableWidth = 1200.0
-        static let sidebarSectionHeaderScalePercent = 100.0
+        static let sidebarSectionHeaderScalePercent = 125.0
         static let updateFileLimit = 5
         static let openFileLimit = 10
         static let ignoredDirectoryNamesText = "node_modules"
@@ -84,8 +84,9 @@ final class AppPreferences: ObservableObject {
         static let ignoredDirectoryNamesText = "bmd.preferences.ignoredDirectoryNames"
     }
 
-    private static let currentDefaultsVersion = 4
+    private static let currentDefaultsVersion = 5
     private static let zoomDefaultsVersion = 2
+    private static let sidebarHeaderDefaultsVersion = 5
     private let store: UserDefaults
 
     @Published var windowWidthPreset: WindowWidthPreset {
@@ -174,12 +175,18 @@ final class AppPreferences: ObservableObject {
             fallback: Defaults.tableWidth,
             range: Limits.tableWidth
         )
-        sidebarSectionHeaderScalePercent = Self.number(
+        let storedSidebarHeaderScale = Self.number(
             in: store,
             forKey: Key.sidebarSectionHeaderScalePercent,
             fallback: Defaults.sidebarSectionHeaderScalePercent,
             range: Limits.sidebarSectionHeaderScalePercent
         )
+        let needsSidebarHeaderMigration = store.integer(forKey: Key.defaultsVersion)
+            < Self.sidebarHeaderDefaultsVersion
+            && storedSidebarHeaderScale == 100
+        sidebarSectionHeaderScalePercent = needsSidebarHeaderMigration
+            ? Defaults.sidebarSectionHeaderScalePercent
+            : storedSidebarHeaderScale
         let updateFileLimitKey = store.object(forKey: Key.updateFileLimit) == nil
             ? Key.legacyWatchedFileLimit
             : Key.updateFileLimit

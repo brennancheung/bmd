@@ -8,6 +8,7 @@ enum AppPreferencesTests {
         testDefaultsAndPersistence()
         testLegacyZoomMigration()
         testExistingCustomZoomIsPreserved()
+        testSidebarHeaderMigration()
         print("AppPreferencesTests passed")
     }
 
@@ -78,7 +79,7 @@ enum AppPreferencesTests {
                 "reset should restore the 125% default zoom"
             )
             expect(
-                preferences.sidebarSectionHeaderScalePercent == 100,
+                preferences.sidebarSectionHeaderScalePercent == 125,
                 "reset should restore the default section label scaling"
             )
             expect(preferences.updateFileLimit == 5, "reset should show five updates")
@@ -102,7 +103,7 @@ enum AppPreferencesTests {
                 "the previous 115% default should migrate to 125%"
             )
             expect(
-                store.integer(forKey: "bmd.preferences.defaultsVersion") == 4,
+                store.integer(forKey: "bmd.preferences.defaultsVersion") == 5,
                 "the migration version should persist"
             )
         }
@@ -118,6 +119,20 @@ enum AppPreferencesTests {
             expect(
                 preferences.zoomPercent == 115,
                 "a post-migration custom 115% zoom should remain unchanged"
+            )
+        }
+    }
+
+    @MainActor
+    private static func testSidebarHeaderMigration() {
+        withStore { store in
+            store.set(4, forKey: "bmd.preferences.defaultsVersion")
+            store.set(100, forKey: "bmd.preferences.sidebarSectionHeaderScalePercent")
+
+            let preferences = AppPreferences(store: store)
+            expect(
+                preferences.sidebarSectionHeaderScalePercent == 125,
+                "the previous 100% section label default should migrate to 125%"
             )
         }
     }
