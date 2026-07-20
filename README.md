@@ -20,9 +20,10 @@ project folders.
 
 The files were easy to create, but strangely tedious to consume. I kept
 navigating back to folders, hunting for the right document, switching windows,
-resizing the viewer, and manually refreshing files as agents continued writing.
-Each interruption only cost a few seconds. Repeated all day, those seconds added
-up—and kept pulling me out of the work.
+resizing the viewer, horizontally scrolling through cropped tables, and manually
+refreshing files as agents continued writing. Each interruption only cost a few
+seconds. Repeated all day, those seconds added up—and kept pulling me out of the
+work.
 
 I built **bmd** to reduce that friction. It watches the folders where agents
 work, surfaces documents as they are created or modified, keeps project files
