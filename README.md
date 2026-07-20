@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/bmd-icon.png" width="160" alt="bmd application icon">
+  <img src="assets/bmd-icon.png" width="180" alt="Beautiful Markdown navy-and-gold BMD application icon">
 </p>
 
 <h1 align="center">bmd — Beautiful Markdown</h1>
