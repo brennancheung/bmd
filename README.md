@@ -12,6 +12,14 @@
   Find the document. Switch to it. Keep reading while it changes.
 </p>
 
+<p align="center">
+  <img src="assets/bmd-reader.webp" width="100%" alt="bmd displaying a Markdown rendering showcase with project navigation, stable Open documents, syntax highlighting, math, and a Mermaid diagram">
+</p>
+
+<p align="center">
+  <sub>Project-aware navigation beside a focused reading surface for technical Markdown.</sub>
+</p>
+
 ## Markdown moves fast now
 
 Working with agents changed how much Markdown I read. Plans, research, reports,
@@ -44,21 +52,24 @@ updated, it appears in **Updates**—no trip through Finder required.
 
 Keep active documents in a stable **Open** list where clicking never moves the
 row you just used. Jump directly to the first nine positions with `⌘1` through
-`⌘9`, move through adjacent Open documents with `⌃Tab`, or move Back and Forward
-through reading history. The Quick Switcher searches Open, Updates, Projects,
-and history when you do not know a document's position.
+`⌘9`; the shortcut hints appear over the right side of the rows only while you
+hold Command. Move through adjacent Open documents with `⌃Tab`, or move Back and
+Forward through reading history. The Quick Switcher searches Open, Updates,
+Projects, and history when you do not know a document's position.
 
 ### Follow work as it changes
 
 Keep a document open while an agent updates it. bmd notices changes and refreshes
 the page automatically without losing your scroll position, so you can keep
-reading instead of reopening the file or finding your place again.
+reading instead of reopening the file or finding your place again. A blue dot
+marks an Open document that changed since you last opened it.
 
 ### Open it ready to read
 
 New windows open centered, full-height, and wide enough for the sidebar and the
-document. Reading width, table width, zoom, sidebar sizing, and list counts can
-all be adjusted without dragging the same window into shape every time.
+document. Reading width, table width, zoom, sidebar sizing, and the number of
+Updates shown can be adjusted without dragging the same window into shape every
+time.
 
 ## Built for the Markdown agents actually produce
 
@@ -129,11 +140,14 @@ project for location-oriented navigation.
 
 - **Open** is a stable working set. Selecting a document changes its highlight,
   not its row position. New documents append to the bottom, and no document is
-  removed automatically. Documents can be pinned, moved explicitly, or closed.
+  removed automatically. Hold Command to reveal `⌘1` through `⌘9` as temporary
+  trailing overlays. Documents can be pinned, moved explicitly, or closed.
 - **Updates** shows new agent-created or agent-modified Markdown. A changed Open
-  document receives an update dot in place instead of appearing twice.
+  document receives a blue dot in place instead of appearing twice. Opening the
+  document acknowledges that update; another on-disk change brings the dot back.
 - **Projects** remembers the documents you opened inside each project without
-  turning the sidebar into another enormous file tree.
+  turning the sidebar into another enormous file tree. Project actions can open
+  a Markdown-only file picker or reveal the project root in Finder.
 
 Use `⌘1` through `⌘9` for direct positional access. Use `⌃Tab` and `⌃⇧Tab` to
 move through adjacent Open documents. `⌘[` and `⌘]` move Back and Forward
@@ -149,7 +163,8 @@ Finder.
 
 bmd is a native SwiftUI application with a focused reading surface. It supports
 the standard zoom shortcuts, system light and dark appearances, project-aware
-file menus, and a menu-bar companion for opening recent work quickly.
+file menus, and a menu-bar companion for opening Updates and active documents
+without first finding the main window.
 
 Closing the reader window leaves bmd available in the menu bar. Choose
 **Quit bmd** when you want to stop the application completely.
@@ -198,6 +213,9 @@ Useful project references:
 - [`docs/PLAN.md`](docs/PLAN.md) tracks current milestones and the roadmap.
 - [`docs/ux-analysis/sidebar-document-switching.md`](docs/ux-analysis/sidebar-document-switching.md)
   documents the interaction analysis behind Open, Updates, and Quick Switcher.
+- [`docs/ux-analysis/open-document-navigation.md`](docs/ux-analysis/open-document-navigation.md)
+  explains the stable positional shortcuts and the separation between Open order
+  and document history.
 - [`examples/rendering-showcase.md`](examples/rendering-showcase.md) exercises
   the supported rendering formats.
 
