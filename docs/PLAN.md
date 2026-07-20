@@ -4,17 +4,19 @@
 
 1. Single `Window` scene titled **bmd**  
 2. `NavigationSplitView`:
-   - Sidebar: Recents, Pinned folders  
+   - Sidebar: Recents, watched folders, and per-folder activity
    - Detail: `MarkdownWebView`  
 3. Open Markdown → read UTF-8 → inject into marked → show HTML  
 4. On open: push path onto recent stack (dedupe, cap list)  
-5. Pin folder → show in sidebar (v1: list `.md` via enumerator when expanded/selected)  
+5. Add folder → persist it, recursively list Markdown, and watch for changes
 6. Bundle offline viewer assets (no CDN at runtime)
 
 ## Default UX choices
 
-- Default window 1320×900, centered on the current display
-- Default zoom 115%; window, zoom, prose width, and table width are configurable
+- New windows use the current display's full visible height and a centered 1480 pt wide preset
+- Window placement is recalculated from the available screens; absolute coordinates are not persisted
+- Default zoom 125%; semantic width preset, zoom, prose width, and table width are configurable
+- Appearance follows the macOS system setting by default, with explicit light/dark overrides
 - CSS: readable prose track; tables share its left edge and can grow to the right
 - One open file at a time in the detail pane (switching recents replaces content)  
 - No splash marketing UI — empty state with Open / Drop / paste-path later  
@@ -24,9 +26,21 @@
 - [x] Remove document-level horizontal overflow
 - [x] Align tables with the prose start while giving them a wider maximum region
 - [x] Add View → Zoom In/Out/Actual Size and Command-plus/minus/zero
-- [x] Add Settings for default zoom, prose/table widths, window size, and centering
+- [x] Add visible toolbar access to Settings and appearance controls
+- [x] Add Settings for default zoom, prose/table widths, and semantic window width
+- [x] Disable stale frame restoration and keep windows on-screen across monitor changes
 - [x] Install every scheme build to a stable `/Applications/bmd.app`
 - [x] Register or select bmd as the macOS default Markdown viewer
+
+## Watched-folder workflow
+
+- [x] Persist folders added from the sidebar, Open panel, drop target, or prior pins
+- [x] Recursively scan `.md`, `.markdown`, `.mdown`, `.mkd`, and `.mdwn` files
+- [x] Watch added folders with recursive FSEvents
+- [x] Show new and updated files in a separate per-folder activity section
+- [x] Keep the complete folder inventory available without polluting global recents
+- [x] Clear a file's activity indicator when it is opened
+- [ ] Add optional folder-level filters and activity retention controls after real-world use
 
 ## File access (sandbox)
 

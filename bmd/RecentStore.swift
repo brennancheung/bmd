@@ -31,7 +31,7 @@ struct BookmarkItem: Identifiable, Codable, Hashable {
     }
 }
 
-/// Persistence for recents and pinned folders (UserDefaults path lists for v1).
+/// Persistence for recents and watched folders (UserDefaults path lists for v1).
 final class RecentStore {
     static let shared = RecentStore()
 
@@ -100,37 +100,6 @@ final class RecentStore {
     func resolve(_ item: BookmarkItem) -> URL? {
         let url = item.url
         return FileManager.default.fileExists(atPath: url.path) ? url : nil
-    }
-
-    func listMarkdownFiles(in folder: URL) -> [URL] {
-        let fm = FileManager.default
-        guard let enumerator = fm.enumerator(
-            at: folder,
-            includingPropertiesForKeys: [.isRegularFileKey],
-            options: [.skipsHiddenFiles, .skipsPackageDescendants]
-        ) else {
-            return []
-        }
-
-        var results: [URL] = []
-        let markdownExtensions: Set<String> = ["md", "markdown", "mdown", "mkd"]
-
-        for case let fileURL as URL in enumerator {
-            // Stay shallow-ish: depth 3 under pin for snappy sidebar.
-            let relative = fileURL.path.replacingOccurrences(of: folder.path, with: "")
-            let depth = relative.split(separator: "/").count
-            if depth > 3 {
-                enumerator.skipDescendants()
-                continue
-            }
-            if markdownExtensions.contains(fileURL.pathExtension.lowercased()) {
-                results.append(fileURL)
-            }
-        }
-
-        return results.sorted {
-            $0.lastPathComponent.localizedCaseInsensitiveCompare($1.lastPathComponent) == .orderedAscending
-        }
     }
 
     private func decode(key: String) -> [BookmarkItem] {

@@ -1,6 +1,6 @@
+import AppKit
 import SwiftUI
 import UniformTypeIdentifiers
-import AppKit
 
 struct ContentView: View {
     @EnvironmentObject private var appState: AppState
@@ -14,11 +14,26 @@ struct ContentView: View {
         }
         .navigationTitle(appState.currentTitle)
         .background {
-            WindowConfigurator(
-                width: preferences.windowWidth,
-                height: preferences.windowHeight,
-                shouldCenter: preferences.centerWindow
-            )
+            MainWindowPlacementView(widthPreset: preferences.windowWidthPreset)
+        }
+        .toolbar {
+            ToolbarItemGroup(placement: .primaryAction) {
+                Menu {
+                    Picker("Appearance", selection: $preferences.appearance) {
+                        ForEach(AppearancePreference.allCases) { appearance in
+                            Text(appearance.title).tag(appearance)
+                        }
+                    }
+                } label: {
+                    Label("Appearance", systemImage: "circle.lefthalf.filled")
+                }
+                .help("Appearance")
+
+                SettingsLink {
+                    Label("Settings", systemImage: "gearshape")
+                }
+                .help("Settings")
+            }
         }
         .onAppear {
             if let delegate = NSApp.delegate as? AppDelegate {
@@ -38,7 +53,7 @@ struct ContentView: View {
                 guard let url else { return }
                 Task { @MainActor in
                     if url.hasDirectoryPath {
-                        appState.pinFolder(url)
+                        appState.addFolder(url)
                     } else {
                         appState.openFile(url)
                     }
@@ -79,40 +94,28 @@ struct SidebarView: View {
                 }
             }
 
-            Section("Pinned folders") {
+            Section {
                 if appState.pins.isEmpty {
-                    Text("Pin agent output folders")
+                    Button("Add a folder…") {
+                        appState.presentAddFolderPanel()
+                    }
                         .foregroundStyle(.secondary)
                 } else {
                     ForEach(appState.pins) { pin in
-                        DisclosureGroup {
-                            let files = appState.markdownFiles(inFolder: pin)
-                            if files.isEmpty {
-                                Text("No .md files")
-                                    .foregroundStyle(.secondary)
-                            } else {
-                                ForEach(files, id: \.path) { file in
-                                    Button {
-                                        appState.openFile(file)
-                                    } label: {
-                                        Text(file.lastPathComponent)
-                                            .lineLimit(1)
-                                    }
-                                    .buttonStyle(.plain)
-                                }
-                            }
-                        } label: {
-                            Label(pin.displayName, systemImage: "folder")
-                        }
-                        .contextMenu {
-                            Button("Unpin", role: .destructive) {
-                                appState.unpin(pin)
-                            }
-                            Button("Reveal in Finder") {
-                                NSWorkspace.shared.activateFileViewerSelecting([pin.url])
-                            }
-                        }
+                        FolderSidebarRow(folder: pin)
                     }
+                }
+            } header: {
+                HStack {
+                    Text("Folders")
+                    Spacer()
+                    Button {
+                        appState.presentAddFolderPanel()
+                    } label: {
+                        Image(systemName: "plus")
+                    }
+                    .buttonStyle(.plain)
+                    .help("Add Folder")
                 }
             }
         }
@@ -125,9 +128,9 @@ struct SidebarView: View {
                     Label("Open", systemImage: "folder")
                 }
                 Button {
-                    appState.presentPinFolderPanel()
+                    appState.presentAddFolderPanel()
                 } label: {
-                    Label("Pin folder", systemImage: "pin")
+                    Label("Add Folder", systemImage: "folder.badge.plus")
                 }
             }
             .buttonStyle(.borderless)
@@ -136,6 +139,90 @@ struct SidebarView: View {
             .background(.bar)
         }
         .frame(minWidth: 220)
+    }
+}
+
+private struct FolderSidebarRow: View {
+    @EnvironmentObject private var appState: AppState
+    @State private var isExpanded = true
+    let folder: BookmarkItem
+
+    var body: some View {
+        DisclosureGroup(isExpanded: $isExpanded) {
+            let activity = appState.folderActivity(in: folder)
+            let files = appState.watchedFiles(in: folder)
+
+            if !activity.isEmpty {
+                Label("New & Updated", systemImage: "sparkles")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                ForEach(activity) { file in
+                    fileButton(file, isActivity: true)
+                }
+                Divider()
+            }
+
+            if files.isEmpty {
+                Text("No Markdown files")
+                    .foregroundStyle(.secondary)
+            } else {
+                if !activity.isEmpty {
+                    Text("All Markdown")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                ForEach(files) { file in
+                    fileButton(file, isActivity: false)
+                }
+            }
+        } label: {
+            HStack(spacing: 6) {
+                Label(folder.displayName, systemImage: "folder")
+                    .lineLimit(1)
+                Spacer(minLength: 4)
+                let activityCount = appState.folderActivity(in: folder).count
+                if activityCount > 0 {
+                    Text("\(activityCount)")
+                        .font(.caption2.monospacedDigit())
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal, 5)
+                        .padding(.vertical, 1)
+                        .background(.quaternary, in: Capsule())
+                }
+            }
+        }
+        .contextMenu {
+            Button("Refresh") {
+                appState.refreshFolders()
+            }
+            Button("Reveal in Finder") {
+                NSWorkspace.shared.activateFileViewerSelecting([folder.url])
+            }
+            Divider()
+            Button("Remove Folder", role: .destructive) {
+                appState.removeFolder(folder)
+            }
+        }
+    }
+
+    private func fileButton(
+        _ file: WatchedMarkdownFile,
+        isActivity: Bool
+    ) -> some View {
+        Button {
+            appState.openFile(file.url)
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: isActivity ? "circle.fill" : "doc.richtext")
+                    .font(isActivity ? Font.system(size: 6) : Font.body)
+                    .foregroundStyle(isActivity ? Color.accentColor : Color.secondary)
+                Text(file.relativePath)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+            }
+        }
+        .buttonStyle(.plain)
+        .help(file.path)
     }
 }
 
@@ -171,58 +258,5 @@ struct DetailView: View {
             )
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-}
-
-private struct WindowConfigurator: NSViewRepresentable {
-    let width: Double
-    let height: Double
-    let shouldCenter: Bool
-
-    func makeNSView(context: Context) -> WindowConfigurationView {
-        WindowConfigurationView(frame: .zero)
-    }
-
-    func updateNSView(_ view: WindowConfigurationView, context: Context) {
-        view.configure = { window in
-            let visibleFrame = (window.screen ?? NSScreen.main)?.visibleFrame
-            let requestedSize = NSSize(width: width, height: height)
-            let contentSize: NSSize
-            if let visibleFrame {
-                contentSize = NSSize(
-                    width: min(requestedSize.width, visibleFrame.width * 0.94),
-                    height: min(requestedSize.height, visibleFrame.height * 0.92)
-                )
-            } else {
-                contentSize = requestedSize
-            }
-            window.setContentSize(contentSize)
-
-            guard shouldCenter, let visibleFrame else { return }
-            let frame = window.frame
-            window.setFrameOrigin(
-                NSPoint(
-                    x: visibleFrame.midX - frame.width / 2,
-                    y: visibleFrame.midY - frame.height / 2
-                )
-            )
-        }
-        view.configureIfPossible()
-    }
-}
-
-private final class WindowConfigurationView: NSView {
-    var configure: ((NSWindow) -> Void)?
-    private var didConfigure = false
-
-    override func viewDidMoveToWindow() {
-        super.viewDidMoveToWindow()
-        configureIfPossible()
-    }
-
-    func configureIfPossible() {
-        guard !didConfigure, let window, let configure else { return }
-        didConfigure = true
-        configure(window)
     }
 }

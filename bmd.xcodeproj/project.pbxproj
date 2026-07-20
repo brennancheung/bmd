@@ -15,6 +15,8 @@
 		B4D000000000000000000001 /* LocalAssetSchemeHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4D000000000000000000002 /* LocalAssetSchemeHandler.swift */; };
 		B4D000000000000000000003 /* AppPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4D000000000000000000004 /* AppPreferences.swift */; };
 		B4D000000000000000000005 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4D000000000000000000006 /* SettingsView.swift */; };
+		B4D00000000000000000000E /* FolderWatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4D00000000000000000000F /* FolderWatcher.swift */; };
+		B4D000000000000000000010 /* WindowPlacement.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4D000000000000000000011 /* WindowPlacement.swift */; };
 		35B57B161C744602B42DEBB8 /* viewer in Resources */ = {isa = PBXBuildFile; fileRef = E22FBBDE87374F42A3C940FB /* viewer */; };
 /* End PBXBuildFile section */
 
@@ -37,6 +39,8 @@
 		B4D000000000000000000002 /* LocalAssetSchemeHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalAssetSchemeHandler.swift; sourceTree = "<group>"; };
 		B4D000000000000000000004 /* AppPreferences.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppPreferences.swift; sourceTree = "<group>"; };
 		B4D000000000000000000006 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		B4D00000000000000000000F /* FolderWatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FolderWatcher.swift; sourceTree = "<group>"; };
+		B4D000000000000000000011 /* WindowPlacement.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowPlacement.swift; sourceTree = "<group>"; };
 		A10000000000000000000006 /* bmd.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = bmd.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		16457A4A05BD453DA86E0833 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		CC0FF0A58B5E4455B8F33BC5 /* bmd.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = bmd.entitlements; sourceTree = "<group>"; };
@@ -82,6 +86,8 @@
 				B4D000000000000000000002 /* LocalAssetSchemeHandler.swift */,
 				B4D000000000000000000004 /* AppPreferences.swift */,
 				B4D000000000000000000006 /* SettingsView.swift */,
+				B4D00000000000000000000F /* FolderWatcher.swift */,
+				B4D000000000000000000011 /* WindowPlacement.swift */,
 				16457A4A05BD453DA86E0833 /* Info.plist */,
 				CC0FF0A58B5E4455B8F33BC5 /* bmd.entitlements */,
 			);
@@ -196,6 +202,8 @@
 				B4D000000000000000000001 /* LocalAssetSchemeHandler.swift in Sources */,
 				B4D000000000000000000003 /* AppPreferences.swift in Sources */,
 				B4D000000000000000000005 /* SettingsView.swift in Sources */,
+				B4D00000000000000000000E /* FolderWatcher.swift in Sources */,
+				B4D000000000000000000010 /* WindowPlacement.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -1,20 +1,57 @@
 import Combine
 import Foundation
 
+enum WindowWidthPreset: String, CaseIterable, Identifiable {
+    case comfortable
+    case wide
+    case extraWide
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .comfortable: "Comfortable"
+        case .wide: "Wide"
+        case .extraWide: "Extra Wide"
+        }
+    }
+
+    var targetWidth: Double {
+        switch self {
+        case .comfortable: 1280
+        case .wide: 1480
+        case .extraWide: 1680
+        }
+    }
+}
+
+enum AppearancePreference: String, CaseIterable, Identifiable {
+    case system
+    case light
+    case dark
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .system: "System"
+        case .light: "Light"
+        case .dark: "Dark"
+        }
+    }
+}
+
 @MainActor
 final class AppPreferences: ObservableObject {
     enum Defaults {
-        static let windowWidth = 1320.0
-        static let windowHeight = 900.0
-        static let zoomPercent = 115.0
+        static let windowWidthPreset = WindowWidthPreset.wide
+        static let appearance = AppearancePreference.system
+        static let zoomPercent = 125.0
         static let proseWidth = 820.0
         static let tableWidth = 1200.0
-        static let centerWindow = true
     }
 
     enum Limits {
-        static let windowWidth = 900.0...2200.0
-        static let windowHeight = 650.0...1600.0
         static let zoomPercent = 75.0...200.0
         static let proseWidth = 640.0...1040.0
         static let tableWidth = 820.0...1600.0
@@ -25,22 +62,23 @@ final class AppPreferences: ObservableObject {
     }
 
     private enum Key {
-        static let windowWidth = "bmd.preferences.windowWidth"
-        static let windowHeight = "bmd.preferences.windowHeight"
+        static let defaultsVersion = "bmd.preferences.defaultsVersion"
+        static let windowWidthPreset = "bmd.preferences.windowWidthPreset"
+        static let appearance = "bmd.preferences.appearance"
         static let zoomPercent = "bmd.preferences.zoomPercent"
         static let proseWidth = "bmd.preferences.proseWidth"
         static let tableWidth = "bmd.preferences.tableWidth"
-        static let centerWindow = "bmd.preferences.centerWindow"
     }
 
+    private static let currentDefaultsVersion = 2
     private let store: UserDefaults
 
-    @Published var windowWidth: Double {
-        didSet { store.set(windowWidth, forKey: Key.windowWidth) }
+    @Published var windowWidthPreset: WindowWidthPreset {
+        didSet { store.set(windowWidthPreset.rawValue, forKey: Key.windowWidthPreset) }
     }
 
-    @Published var windowHeight: Double {
-        didSet { store.set(windowHeight, forKey: Key.windowHeight) }
+    @Published var appearance: AppearancePreference {
+        didSet { store.set(appearance.rawValue, forKey: Key.appearance) }
     }
 
     @Published var zoomPercent: Double {
@@ -55,32 +93,29 @@ final class AppPreferences: ObservableObject {
         didSet { store.set(tableWidth, forKey: Key.tableWidth) }
     }
 
-    @Published var centerWindow: Bool {
-        didSet { store.set(centerWindow, forKey: Key.centerWindow) }
-    }
-
     var zoomScale: Double { zoomPercent / 100 }
 
     init(store: UserDefaults = .standard) {
         self.store = store
-        windowWidth = Self.number(
-            in: store,
-            forKey: Key.windowWidth,
-            fallback: Defaults.windowWidth,
-            range: Limits.windowWidth
-        )
-        windowHeight = Self.number(
-            in: store,
-            forKey: Key.windowHeight,
-            fallback: Defaults.windowHeight,
-            range: Limits.windowHeight
-        )
-        zoomPercent = Self.number(
+
+        windowWidthPreset = WindowWidthPreset(
+            rawValue: store.string(forKey: Key.windowWidthPreset) ?? ""
+        ) ?? Defaults.windowWidthPreset
+        appearance = AppearancePreference(
+            rawValue: store.string(forKey: Key.appearance) ?? ""
+        ) ?? Defaults.appearance
+
+        let storedZoom = Self.number(
             in: store,
             forKey: Key.zoomPercent,
             fallback: Defaults.zoomPercent,
             range: Limits.zoomPercent
         )
+        let needsZoomMigration = store.integer(forKey: Key.defaultsVersion)
+            < Self.currentDefaultsVersion
+            && storedZoom == 115
+        zoomPercent = needsZoomMigration ? Defaults.zoomPercent : storedZoom
+
         proseWidth = Self.number(
             in: store,
             forKey: Key.proseWidth,
@@ -93,9 +128,9 @@ final class AppPreferences: ObservableObject {
             fallback: Defaults.tableWidth,
             range: Limits.tableWidth
         )
-        centerWindow = store.object(forKey: Key.centerWindow) == nil
-            ? Defaults.centerWindow
-            : store.bool(forKey: Key.centerWindow)
+
+        store.set(zoomPercent, forKey: Key.zoomPercent)
+        store.set(Self.currentDefaultsVersion, forKey: Key.defaultsVersion)
     }
 
     func zoomIn() {
@@ -111,12 +146,11 @@ final class AppPreferences: ObservableObject {
     }
 
     func resetAll() {
-        windowWidth = Defaults.windowWidth
-        windowHeight = Defaults.windowHeight
+        windowWidthPreset = Defaults.windowWidthPreset
+        appearance = Defaults.appearance
         zoomPercent = Defaults.zoomPercent
         proseWidth = Defaults.proseWidth
         tableWidth = Defaults.tableWidth
-        centerWindow = Defaults.centerWindow
     }
 
     private func setZoom(_ value: Double) {

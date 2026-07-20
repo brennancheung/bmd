@@ -12,15 +12,13 @@ struct bmdApp: App {
             ContentView()
                 .environmentObject(appState)
                 .environmentObject(preferences)
+                .preferredColorScheme(preferredColorScheme)
                 .onAppear {
                     appDelegate.appState = appState
                     appDelegate.drainPending(into: appState)
                 }
         }
-        .defaultSize(
-            width: preferences.windowWidth,
-            height: preferences.windowHeight
-        )
+        .defaultSize(width: 1480, height: 900)
         .commands {
             CommandGroup(replacing: .newItem) {
                 Button("Open…") {
@@ -55,6 +53,15 @@ struct bmdApp: App {
         Settings {
             SettingsView()
                 .environmentObject(preferences)
+                .preferredColorScheme(preferredColorScheme)
+        }
+    }
+
+    private var preferredColorScheme: ColorScheme? {
+        switch preferences.appearance {
+        case .system: nil
+        case .light: .light
+        case .dark: .dark
         }
     }
 }
@@ -65,6 +72,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSWindow.allowsAutomaticWindowTabbing = false
+        UserDefaults.standard.removeObject(forKey: "NSWindow Frame main")
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {

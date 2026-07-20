@@ -22,24 +22,25 @@ Primary pain points with existing Quick Look Markdown tools (esp. QLMarkdown):
 |-------|----------|
 | Single window app (SwiftUI + WKWebView) | Quick Look extension |
 | Open `.md` via Open dialog, drag-drop, `open -a bmd`, CLI `bmd` | Multi-window per file |
-| Sidebar: **recent files** + **pinned folders** | Full Finder replacement |
+| Sidebar: **recent files** + **watched folders** | Full Finder replacement |
 | Agents open files with this app → they land on recent stack | YAML/Rmd/Quarto science stack |
-| Web markdown (HTML/JS/CSS ecosystem) | Mermaid (later if needed) |
-| Table-friendly CSS + wide default window | Math (easy add via KaTeX later) |
-| Relative local images via file base URL | Syntax highlight polish (add highlight.js/Shiki soon) |
+| Web markdown, syntax, math, and Mermaid | Full editing workflows |
+| Table-friendly CSS + centered, full-height window | App Store sandboxing/bookmarks |
+| Relative local images via bounded local URL scheme | Quick Look extension |
 
 ### Architecture
 
 ```
 Native (Swift)
-  - window, sidebar, recents, pins, open file/folder
+  - screen-safe window placement, sidebar, recents, watched folders
+  - recursive folder discovery and file-change activity
   - file access + WebKit document read root
   - pass markdown text + base directory into webview
 
 Web (bundled Resources/viewer)
   - marked.js → HTML
   - theme CSS (prose max-width, tables scroll/expand)
-  - future: highlight, math, mermaid
+  - highlight.js, KaTeX, Mermaid, and light/dark themes
 ```
 
 **No Electron. No Safari. No system Chrome.** Only WKWebView inside bmd.
@@ -95,7 +96,7 @@ We studied it only to know how QL works and what to *avoid*. bmd is greenfield a
 
 - [x] Repo + handoff docs  
 - [x] SwiftUI single window  
-- [x] Sidebar recents + pins  
+- [x] Sidebar recents + watched folders
 - [x] WKWebView + marked  
 - [x] Open file, render, remember recents  
 - [x] Debug build succeeds (`xcodebuild -scheme bmd`)  
@@ -104,12 +105,12 @@ We studied it only to know how QL works and what to *avoid*. bmd is greenfield a
 
 ### Phase 2 — Daily driver
 
-- [x] Configurable centered default window size
+- [x] Centered, full-visible-height window with semantic width presets
 - [x] Configurable zoom and readable/table widths
 - [x] Native View menu zoom commands (Command-plus/minus/zero)
 - [x] Stable `/Applications/bmd.app` install/update workflow
 - [x] Set bmd as the Markdown default from Settings or the installer
-- Pin folders: list contained `.md` files  
+- [x] Watched folders: recursively list Markdown and surface new/updated files
 - Optional folder grants/bookmarks if App Store sandboxing is added later
 - [x] Better CSS, light/dark
 - [x] Syntax highlighting with highlight.js
@@ -130,7 +131,7 @@ security-scoped directory bookmarks.
 - [x] Math with offline KaTeX
 - [x] Mermaid diagrams
 - “Open from clipboard” if paste looks like a path  
-- Watch pinned folder / auto-open newest  
+- Optional notification or auto-open policy for watched-folder activity
 - Outline / TOC sidebar section  
 
 ---

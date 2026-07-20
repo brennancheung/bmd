@@ -1,7 +1,7 @@
 # bmd
 
 **Beautiful Markdown** is a dedicated macOS Markdown reader. Native shell, web
-rendering. One window, sidebar recents + pinned folders. The app itself is
+rendering. One window, sidebar recents + watched folders. The app itself is
 always named **bmd**.
 
 **Not** an editor. **Not** Quick Look (yet). **Not** Safari/Chrome.
@@ -93,7 +93,8 @@ argument to choose a different output path:
 
 - SwiftUI app target **bmd**  
 - WKWebView + bundled marked, highlight.js, KaTeX, and Mermaid
-- UserDefaults path lists for recents and pins
+- UserDefaults persistence for recents, watched folders, appearance, reading widths, and zoom
+- Recursive FSEvents folder watching with per-folder “New & Updated” activity
 
 Relative local assets are served to WebKit through a read-only handler bounded
 to the current Markdown directory. The direct-distribution build is not App
@@ -119,6 +120,20 @@ xcrun swiftc -parse-as-library \
   -framework Combine \
   -o build/tests/app-preferences-tests
 build/tests/app-preferences-tests
+
+# Screen-safe semantic window placement
+xcrun swiftc -parse-as-library \
+  bmd/AppPreferences.swift bmd/WindowPlacement.swift tests/WindowPlacementTests.swift \
+  -framework AppKit -framework SwiftUI -framework Combine \
+  -o build/tests/window-placement-tests
+build/tests/window-placement-tests
+
+# Recursive folder discovery and activity watching
+xcrun swiftc -parse-as-library \
+  bmd/FolderWatcher.swift tests/FolderWatcherTests.swift \
+  -framework CoreServices \
+  -o build/tests/folder-watcher-tests
+build/tests/folder-watcher-tests
 ```
 
 ## License

@@ -11,13 +11,24 @@ final class AppState: ObservableObject {
     @Published private(set) var statusMessage: String?
     @Published var recents: [BookmarkItem]
     @Published var pins: [BookmarkItem]
+    @Published private(set) var watchedFilesByFolder: [String: [WatchedMarkdownFile]] = [:]
+    @Published private(set) var folderActivityByFolder: [String: [WatchedMarkdownFile]] = [:]
 
     private let store: RecentStore
+    private let folderWatcher: MarkdownFolderWatcher
 
-    init(store: RecentStore = .shared) {
+    init(
+        store: RecentStore = .shared,
+        folderWatcher: MarkdownFolderWatcher = MarkdownFolderWatcher()
+    ) {
         self.store = store
+        self.folderWatcher = folderWatcher
         self.recents = store.loadRecents()
         self.pins = store.loadPins()
+        folderWatcher.onUpdate = { [weak self] update in
+            self?.applyFolderUpdate(update)
+        }
+        folderWatcher.watch(folders: pins.map(\.url))
     }
 
     var currentTitle: String {
@@ -49,15 +60,15 @@ final class AppState: ObservableObject {
         }
     }
 
-    func presentPinFolderPanel() {
+    func presentAddFolderPanel() {
         let panel = NSOpenPanel()
         panel.canChooseFiles = false
         panel.canChooseDirectories = true
         panel.allowsMultipleSelection = false
-        panel.title = "Pin Folder"
-        panel.prompt = "Pin"
+        panel.title = "Add Folder"
+        panel.prompt = "Add"
         if panel.runModal() == .OK, let url = panel.url {
-            pinFolder(url)
+            addFolder(url)
         }
     }
 
@@ -78,6 +89,7 @@ final class AppState: ObservableObject {
             statusMessage = nil
 
             recents = store.rememberRecent(resolved)
+            clearFolderActivity(for: resolved)
         } catch {
             statusMessage = error.localizedDescription
         }
@@ -92,12 +104,16 @@ final class AppState: ObservableObject {
         }
     }
 
-    func pinFolder(_ url: URL) {
+    func addFolder(_ url: URL) {
         pins = store.pinFolder(url.standardizedFileURL)
+        folderWatcher.watch(folders: pins.map(\.url))
     }
 
-    func unpin(_ item: BookmarkItem) {
+    func removeFolder(_ item: BookmarkItem) {
         pins = store.unpin(item)
+        watchedFilesByFolder[item.path] = nil
+        folderActivityByFolder[item.path] = nil
+        folderWatcher.watch(folders: pins.map(\.url))
     }
 
     func removeRecent(_ item: BookmarkItem) {
@@ -108,9 +124,36 @@ final class AppState: ObservableObject {
         recents = store.clearRecents()
     }
 
-    func markdownFiles(inFolder item: BookmarkItem) -> [URL] {
-        guard let folder = store.resolve(item) else { return [] }
-        return store.listMarkdownFiles(in: folder)
+    func watchedFiles(in folder: BookmarkItem) -> [WatchedMarkdownFile] {
+        watchedFilesByFolder[folder.path] ?? []
     }
 
+    func folderActivity(in folder: BookmarkItem) -> [WatchedMarkdownFile] {
+        folderActivityByFolder[folder.path] ?? []
+    }
+
+    func refreshFolders() {
+        folderWatcher.refresh()
+    }
+
+    private func applyFolderUpdate(_ update: WatchedFolderUpdate) {
+        guard pins.contains(where: { $0.path == update.rootPath }) else { return }
+        watchedFilesByFolder[update.rootPath] = update.files
+        guard !update.isInitial, !update.changedFiles.isEmpty else { return }
+
+        let changedPaths = Set(update.changedFiles.map(\.path))
+        let currentPaths = Set(update.files.map(\.path))
+        let existing = (folderActivityByFolder[update.rootPath] ?? [])
+            .filter { currentPaths.contains($0.path) && !changedPaths.contains($0.path) }
+        folderActivityByFolder[update.rootPath] = Array(
+            (update.changedFiles + existing).prefix(20)
+        )
+    }
+
+    private func clearFolderActivity(for file: URL) {
+        let path = file.standardizedFileURL.path
+        for rootPath in Array(folderActivityByFolder.keys) {
+            folderActivityByFolder[rootPath]?.removeAll { $0.path == path }
+        }
+    }
 }

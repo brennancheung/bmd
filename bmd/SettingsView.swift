@@ -9,6 +9,15 @@ struct SettingsView: View {
 
     var body: some View {
         Form {
+            Section("Appearance") {
+                Picker("Color scheme", selection: $preferences.appearance) {
+                    ForEach(AppearancePreference.allCases) { appearance in
+                        Text(appearance.title).tag(appearance)
+                    }
+                }
+                .pickerStyle(.segmented)
+            }
+
             Section("Reading") {
                 preferenceSlider(
                     title: "Default zoom",
@@ -34,20 +43,12 @@ struct SettingsView: View {
             }
 
             Section("New Window") {
-                Stepper(
-                    "Width: \(Int(preferences.windowWidth)) pt",
-                    value: $preferences.windowWidth,
-                    in: AppPreferences.Limits.windowWidth,
-                    step: 50
-                )
-                Stepper(
-                    "Height: \(Int(preferences.windowHeight)) pt",
-                    value: $preferences.windowHeight,
-                    in: AppPreferences.Limits.windowHeight,
-                    step: 50
-                )
-                Toggle("Center on the current display", isOn: $preferences.centerWindow)
-                Text("Window size changes apply the next time bmd opens.")
+                Picker("Width", selection: $preferences.windowWidthPreset) {
+                    ForEach(WindowWidthPreset.allCases) { preset in
+                        Text(preset.title).tag(preset)
+                    }
+                }
+                Text("bmd opens centered at the full visible height of the current display.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
