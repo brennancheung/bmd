@@ -58,7 +58,16 @@ Forward through reading history. When you vaguely remember a filename, press
 `⌃P` to search every Markdown file in the current project or `⌃O` to search
 across all added projects. Results favor filename and word-boundary matches, so
 short fragments such as `rnd show` can find `rendering-showcase.md` without an
-exact name or path.
+exact name or path. Search stays keyboard-friendly: use the arrow keys or the
+Vim-style `⌃J` and `⌃K` bindings to move, Return to open, and Escape to close.
+
+<p align="center">
+  <img src="assets/bmd-project-search.webp" alt="Project-scoped fuzzy search in bmd with highlighted filename matches and keyboard navigation hints">
+</p>
+
+<p align="center">
+  <sub>The scope stays visible, matched characters stand out, and navigation stays on the keyboard.</sub>
+</p>
 
 ### Follow work as it changes
 
