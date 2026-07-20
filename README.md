@@ -12,14 +12,6 @@
   Find the document. Switch to it. Keep reading while it changes.
 </p>
 
-<p align="center">
-  <img src="assets/bmd-reader.webp" width="100%" alt="bmd displaying a Markdown rendering showcase with project navigation, stable Open documents, syntax highlighting, math, and a Mermaid diagram">
-</p>
-
-<p align="center">
-  <sub>Project-aware navigation beside a focused reading surface for technical Markdown.</sub>
-</p>
-
 ## Markdown moves fast now
 
 Working with agents changed how much Markdown I read. Plans, research, reports,
@@ -40,6 +32,14 @@ are already reading.
 
 The goal is simple: spend less time managing Markdown files and more time
 understanding what is in them.
+
+<p align="center">
+  <img src="assets/bmd-overview.webp" width="100%" alt="bmd showing the README beside Updates, stable Open documents, and project navigation">
+</p>
+
+<p align="center">
+  <sub>The document stays in front while active work remains one click away.</sub>
+</p>
 
 ## Stay in the flow
 
@@ -71,6 +71,14 @@ document. Reading width, table width, zoom, sidebar sizing, and the number of
 Updates shown can be adjusted without dragging the same window into shape every
 time.
 
+<p align="center">
+  <img src="assets/bmd-sidebar.webp" width="420" alt="bmd sidebar showing Updates, stable Open positions with Command shortcuts, and project documents">
+</p>
+
+<p align="center">
+  <sub>Updates surface agent changes. Open stays stable. Projects preserve location.</sub>
+</p>
+
 ## Built for the Markdown agents actually produce
 
 Agent output is rarely just a few paragraphs of prose. bmd renders the technical
@@ -85,6 +93,22 @@ documents that show up in real projects:
 
 Everything needed to render a document is bundled with the app. Reading works
 offline, and local assets stay local.
+
+<p align="center">
+  <img src="assets/bmd-syntax-highlighting.webp" width="100%" alt="Syntax-highlighted Swift, JavaScript, and shell code in bmd">
+</p>
+
+<p align="center">
+  <img src="assets/bmd-math.webp" width="78%" alt="Inline and display math rendered in bmd">
+</p>
+
+<p align="center">
+  <img src="assets/bmd-mermaid.webp" width="100%" alt="A Mermaid flow diagram rendered in bmd">
+</p>
+
+<p align="center">
+  <img src="assets/bmd-local-images.webp" width="100%" alt="Relative local PNG and SVG images rendered in bmd">
+</p>
 
 ## Try bmd
 
