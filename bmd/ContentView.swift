@@ -19,15 +19,21 @@ struct ContentView: View {
         .toolbar {
             ToolbarItemGroup(placement: .primaryAction) {
                 Menu {
-                    Picker("Appearance", selection: $preferences.appearance) {
-                        ForEach(AppearancePreference.allCases) { appearance in
-                            Text(appearance.title).tag(appearance)
+                    ForEach(AppearancePreference.allCases) { appearance in
+                        Button {
+                            preferences.appearance = appearance
+                        } label: {
+                            if preferences.appearance == appearance {
+                                Label(appearance.title, systemImage: "checkmark")
+                            } else {
+                                Text(appearance.title)
+                            }
                         }
                     }
                 } label: {
-                    Label("Appearance", systemImage: "circle.lefthalf.filled")
+                    Label("Theme", systemImage: "circle.lefthalf.filled")
                 }
-                .help("Appearance")
+                .help("Theme")
 
                 SettingsLink {
                     Label("Settings", systemImage: "gearshape")
