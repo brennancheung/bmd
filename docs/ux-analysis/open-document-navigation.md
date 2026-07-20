@@ -194,10 +194,11 @@ address. It earns its visual space only if `⌘N` reliably activates that addres
 ### Visual hierarchy
 
 - The filename and current selection remain primary.
-- The ordinal occupies a narrow aligned gutter and stays quieter than the filename.
+- The shortcut is absent during normal reading and appears as a trailing overlay
+  only while Command is held.
 - Project path remains secondary.
-- Holding Command may increase the ordinal's contrast or reveal the `⌘` symbol,
-  but it must not change row geometry.
+- Holding Command reveals `⌘1` through `⌘9` over the trailing edge without
+  changing row geometry.
 - Update state remains a small exception indicator.
 
 ## Quantitative interaction analysis
@@ -237,22 +238,18 @@ retrieval.
 ### Working memory and hidden-mode cost
 
 Requiring the user to remember nine filename-to-number mappings would exceed the
-four-chunk active working-memory guideline. Visible ordinals externalize the
-mapping, keeping the immediate task at roughly 1–2 chunks.
+four-chunk active working-memory guideline. The Command-held overlay externalizes
+the mapping on demand, while the Navigate menu provides a persistent discovery
+path. The immediate switching task remains at roughly 1–2 chunks.
 
-Showing numbers *only* while Command is held introduces a mode dependency. The
+Showing numbers only while Command is held introduces a mode dependency. The
 skill's error model assigns a 10% mode-error risk to mode-dependent behavior. That
 does not mean 10% of switches will fail in production; it is a pattern-level risk
-signal. The safer compromise is:
-
-- keep low-contrast ordinals visible for the first nine rows;
-- when Command is held, strengthen their contrast or show `⌘1`, `⌘2`, etc.;
-- reserve the ordinal gutter at all times, so modifier feedback causes zero layout
-  shift.
-
-If a quieter interface is preferred, a 150–250ms Command-hold reveal can avoid
-flashing on quick chords, but it adds that delay before a user who forgot the
-mapping can inspect it. Confidence is **Low** until observed in the rendered app.
+signal. After using the first implementation, the persistent gutter proved more
+costly than the theoretical discoverability benefit: it indented every Open row
+and made shortcut metadata compete with filenames. The implemented refinement
+therefore uses a trailing `⌘N` overlay only while Command is held. The overlay
+temporarily covers the update indicator and reserves no permanent space.
 
 ### History uncertainty
 
@@ -289,17 +286,17 @@ Best when Open is a persistent working set and long filenames/project paths matt
 
 ```text
 OPEN
- 1  CONTEXT.md                         docs
- 2  rendering-showcase.md              examples       •
- 3  welcome.md                         examples
- 4  sidebar-document-switching.md      docs/ux-analysis
- 5  README.md                          bmd
+    CONTEXT.md                         docs
+    rendering-showcase.md              examples       •
+    welcome.md                         examples
+    sidebar-document-switching.md      docs/ux-analysis
+    README.md                          bmd
 
 Holding Command (same geometry):
 
-⌘1  CONTEXT.md                         docs
-⌘2  rendering-showcase.md              examples       •
-⌘3  welcome.md                         examples
+    CONTEXT.md                         docs          ⌘1
+    rendering-showcase.md              examples      ⌘2
+    welcome.md                         examples      ⌘3
 ```
 
 Interaction rules:
@@ -317,10 +314,9 @@ Interaction rules:
 
 Regions:
 
-- Left gutter: spatial address/accelerator.
 - Center: document identity and project context.
 - Row background: current state.
-- Right edge: exceptional update state only.
+- Right edge: update state normally; shortcut overlay while Command is held.
 - Toolbar/menu: temporal history, separate from Open order.
 
 HCI checks:
@@ -429,8 +425,8 @@ Tradeoffs:
 
 ### Sensitivity by profile
 
-- **Novice:** Option B's familiar tabs are easiest to recognize, but Option A is
-  close once the numeric gutter is visible. Both preserve a visible current state.
+- **Novice:** Option B's familiar tabs are easiest to recognize. Option A preserves
+  a visible current state, while its menu commands teach the hidden shortcuts.
 - **Intermediate:** Option A best balances recognition, project context, and direct
   shortcuts.
 - **Expert:** Option A wins for deterministic direct access; Option C wins only for
@@ -451,8 +447,8 @@ tab strip:
 1. Preserve append-only order during normal opening and selection.
 2. Remove hidden LRU eviction from the active numbered set.
 3. Give the first nine positions direct keyboard addresses.
-4. Keep a reserved ordinal gutter; show quiet numbers normally and stronger
-   `⌘N` hints while Command is held.
+4. Show trailing `⌘N` overlays only while Command is held, with no permanent
+   gutter or layout shift.
 5. Add a separate previous/next **Open position** command.
 6. Keep chronological Back/Forward, but explicitly call it document history.
 7. Retain Quick Switcher as the transient, dynamically ranked path for documents

@@ -261,23 +261,11 @@ struct SidebarView: View {
     ) -> some View {
         let isCurrent = appState.currentFile?.path == item.path
         let hasUpdate = appState.unreadUpdate(for: item.path) != nil
+        let showsShortcut = modifierKeys.isCommandPressed && position <= 9
         return Button {
             appState.openDocument(item)
         } label: {
             HStack(spacing: 7) {
-                Text(shortcutLabel(for: position))
-                    .font(.caption.monospacedDigit())
-                    .fontWeight(modifierKeys.isCommandPressed ? .semibold : .regular)
-                    .foregroundStyle(
-                        modifierKeys.isCommandPressed
-                            ? Color.primary.opacity(0.72)
-                            : Color.secondary.opacity(0.65)
-                    )
-                    .frame(width: 22, alignment: .trailing)
-                    .accessibilityLabel(
-                        "Open position \(position), shortcut Command \(position)"
-                    )
-                    .accessibilityHidden(position > 9)
                 Image(systemName: isCurrent ? "doc.text.fill" : "doc.text")
                     .foregroundStyle(isCurrent ? Color.accentColor : Color.secondary)
                 VStack(alignment: .leading, spacing: 1) {
@@ -302,7 +290,9 @@ struct SidebarView: View {
                     Circle()
                         .fill(Color.accentColor)
                         .frame(width: 7, height: 7)
-                        .help("Updated on disk")
+                        .opacity(showsShortcut ? 0 : 1)
+                        .accessibilityLabel("Unread update")
+                        .help("Changed on disk since you last opened it")
                 }
             }
             .padding(.horizontal, 5)
@@ -311,9 +301,30 @@ struct SidebarView: View {
                 RoundedRectangle(cornerRadius: 6)
                     .fill(isCurrent ? Color.accentColor.opacity(0.12) : .clear)
             )
+            .overlay(alignment: .trailing) {
+                if showsShortcut {
+                    Text("⌘\(position)")
+                        .font(.caption.monospacedDigit())
+                        .fontWeight(.semibold)
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 3)
+                        .background(
+                            .regularMaterial,
+                            in: RoundedRectangle(cornerRadius: 5)
+                        )
+                        .padding(.trailing, 4)
+                        .allowsHitTesting(false)
+                        .transition(.opacity)
+                }
+            }
+            .animation(.easeOut(duration: 0.12), value: showsShortcut)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .accessibilityHint(
+            position <= 9 ? "Open with Command \(position)" : ""
+        )
         .help(
             position <= 9
                 ? "\(item.path)\nOpen with ⌘\(position)"
@@ -346,11 +357,6 @@ struct SidebarView: View {
                 appState.closeOpenDocument(item)
             }
         }
-    }
-
-    private func shortcutLabel(for position: Int) -> String {
-        guard position <= 9 else { return "" }
-        return modifierKeys.isCommandPressed ? "⌘\(position)" : "\(position)"
     }
 }
 
