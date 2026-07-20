@@ -76,7 +76,7 @@ offline, and local assets stay local.
 
 > **Current status:** bmd is in early development for macOS 14 Sonoma and newer.
 > The daily reading workflow works, but packaged releases, signing,
-> notarization, and a public license have not been finalized.
+> and notarization have not been finalized.
 
 Clone the repository and install the current development build:
 
@@ -206,5 +206,4 @@ a Quick Look extension belongs in the product.
 
 ## License
 
-A public license has not been selected yet. Until a `LICENSE` file is added, the
-source is available for inspection but no additional rights are granted.
+bmd is available under the [MIT License](LICENSE).
