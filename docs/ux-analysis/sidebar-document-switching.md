@@ -301,7 +301,7 @@ A keyboard command opens a temporary switcher:
 ### Interaction rules
 
 - `⌘[` and `⌘]` navigate Back and Forward through document history.
-- A Quick Switch command such as `⌘⇧O` opens the transient switcher.
+- A Quick Switch command such as `⌃O` opens the transient switcher.
 - Search spans open documents, history, updates, and project documents.
 - Recency ranking is safe inside the switcher because it closes after
   selection; the user never watches its rows move.
@@ -434,7 +434,8 @@ it removes an interruption from the workflow bmd is designed to protect.
   app session.
 - `⌘1` through `⌘9` open stable positions directly.
 - `⌃Tab` and `⌃⇧Tab` traverse adjacent Open positions.
-- `⇧⌘O` opens Quick Switcher; `⌘[` and `⌘]` navigate Back and Forward in
+- `⌃O` opens global search; `⌃P` opens active-project search; `⌘[` and `⌘]`
+  navigate Back and Forward in
   document history.
 
 ### Migration

@@ -119,7 +119,7 @@ We studied it only to know how QL works and what to *avoid*. bmd is greenfield a
 - [x] Keep Updates, Open, navigation, Settings, and Quit available from the menu bar
 - [x] Watched folders surface created/modified files without listing every Markdown file
 - [x] Auto-refresh the current Markdown file after external changes
-- [x] Search by partial filename with `⇧⌘O` globally or `⇧⌘P` in the active project
+- [x] Search by partial filename with `⌃O` globally or `⌃P` in the active project
 - Optional folder grants/bookmarks if App Store sandboxing is added later
 - [x] Better CSS, light/dark
 - [x] Syntax highlighting with highlight.js

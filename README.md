@@ -55,7 +55,7 @@ row you just used. Jump directly to the first nine positions with `⌘1` through
 `⌘9`; the shortcut hints appear over the right side of the rows only while you
 hold Command. Move through adjacent Open documents with `⌃Tab`, or move Back and
 Forward through reading history. When you vaguely remember a filename, press
-`⇧⌘P` to search every Markdown file in the current project or `⇧⌘O` to search
+`⌃P` to search every Markdown file in the current project or `⌃O` to search
 across all added projects. Results favor filename and word-boundary matches, so
 short fragments such as `rnd show` can find `rendering-showcase.md` without an
 exact name or path.
@@ -178,8 +178,8 @@ project for location-oriented navigation.
 
 Use `⌘1` through `⌘9` for direct positional access. Use `⌃Tab` and `⌃⇧Tab` to
 move through adjacent Open documents. `⌘[` and `⌘]` move Back and Forward
-through document history. Use `⇧⌘P` to search the active document's project or
-`⇧⌘O` to search all added projects. Search results include Markdown that has not
+through document history. Use `⌃P` to search the active document's project or
+`⌃O` to search all added projects. Search results include Markdown that has not
 previously been opened; use the arrow keys or `⌃J` and `⌃K` to navigate, then
 Return to open. bmd remembers each document's reading position while you switch.
 

@@ -39,7 +39,7 @@ struct ContentView: View {
                 } label: {
                     Label("Search All Markdown", systemImage: "doc.text.magnifyingglass")
                 }
-                .help("Search All Markdown (⇧⌘O)")
+                .help("Search All Markdown (⌃O)")
 
                 Menu {
                     ForEach(AppearancePreference.allCases) { appearance in

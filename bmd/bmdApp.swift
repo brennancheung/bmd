@@ -81,7 +81,7 @@ struct bmdApp: App {
                 Button("Search All Markdown…") {
                     appState.showGlobalSearch()
                 }
-                .keyboardShortcut("o", modifiers: [.command, .shift])
+                .keyboardShortcut("o", modifiers: .control)
 
                 Button(
                     appState.currentProject.map { "Search “\($0.displayName)”…" }
@@ -89,7 +89,7 @@ struct bmdApp: App {
                 ) {
                     appState.showCurrentProjectSearch()
                 }
-                .keyboardShortcut("p", modifiers: [.command, .shift])
+                .keyboardShortcut("p", modifiers: .control)
             }
 
             CommandGroup(after: .toolbar) {

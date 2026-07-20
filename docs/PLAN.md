@@ -50,7 +50,7 @@
 - [x] Confine frecency ranking to the transient Quick Switcher
 - [x] Index every Markdown file in added projects without turning Projects into a file tree
 - [x] Add filename-first fuzzy matching with boundary, adjacency, and exact-match weighting
-- [x] Add separate global (`⇧⌘O`) and active-project (`⇧⌘P`) search scopes
+- [x] Add separate global (`⌃O`) and active-project (`⌃P`) search scopes
 - [x] Add keyboard-only search navigation with arrows, `⌃J` / `⌃K`, paging, and Return
 - [x] Highlight the filename and path fragments responsible for each match
 - [x] Keep large repositories responsive and cap the low-value result tail
