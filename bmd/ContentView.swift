@@ -149,8 +149,8 @@ struct SidebarView: View {
             }
         }
         .listStyle(.sidebar)
-        .contentMargins(.top, 8, for: .scrollContent)
-        .contentMargins(.trailing, 8, for: .scrollContent)
+        .contentMargins(.top, 16, for: .scrollContent)
+        .contentMargins(.trailing, 14, for: .scrollContent)
         .safeAreaInset(edge: .bottom) {
             HStack {
                 Button {

@@ -55,6 +55,8 @@ struct bmdApp: App {
                 .environmentObject(preferences)
                 .preferredColorScheme(preferredColorScheme)
         }
+        .defaultSize(width: 680, height: 800)
+        .windowResizability(.contentMinSize)
 
         MenuBarExtra {
             MenuBarView()
