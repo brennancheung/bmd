@@ -62,7 +62,7 @@ exact name or path. Search stays keyboard-friendly: use the arrow keys or the
 Vim-style `⌃J` and `⌃K` bindings to move, Return to open, and Escape to close.
 
 <p align="center">
-  <img src="assets/bmd-project-search.webp" alt="Project-scoped fuzzy search in bmd with highlighted filename matches and keyboard navigation hints">
+  <img src="assets/bmd-project-search.png" alt="Project-scoped fuzzy search in bmd with highlighted filename matches and keyboard navigation hints">
 </p>
 
 <p align="center">
