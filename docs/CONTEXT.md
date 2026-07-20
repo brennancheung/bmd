@@ -24,6 +24,7 @@ Primary pain points with existing Quick Look Markdown tools (esp. QLMarkdown):
 | Persistent menu-bar access to Updates and Open | Full background agent automation |
 | Open `.md` via Open dialog, drag-drop, `open -a bmd`, CLI `bmd` | Multi-window per file |
 | Sidebar: **Updates** + stable **Open** + **Projects** | Full Finder replacement |
+| Filename-first fuzzy search across the active project or all projects | File-content search |
 | Agents open files with this app → they join Open without reordering it | YAML/Rmd/Quarto science stack |
 | Web markdown, syntax, math, and Mermaid | Full editing workflows |
 | Table-friendly CSS + centered, full-height window | App Store sandboxing/bookmarks |
@@ -34,7 +35,7 @@ Primary pain points with existing Quick Look Markdown tools (esp. QLMarkdown):
 ```
 Native (Swift)
   - screen-safe window placement and native reader controls
-  - agent updates, stable open documents, history, and project-opened files
+  - agent updates, stable open documents, history, project-opened files, and search index
   - recursive project discovery and dedicated current-file watching
   - file access + WebKit document read root
   - pass markdown text + base directory into webview
@@ -54,6 +55,7 @@ Swift owns:
 - Which file is open  
 - Reading file bytes  
 - Updates, Open, history, project, and opened-file lists
+- Global and active-project fuzzy search across indexed Markdown paths
 - Serving relative assets from the current file’s directory
 
 JS owns:
@@ -102,6 +104,7 @@ We studied it only to know how QL works and what to *avoid*. bmd is greenfield a
 - [x] WKWebView + marked  
 - [x] Open file, render, and remember a stable working set
 - [x] Number the first nine Open positions and support adjacent keyboard traversal
+- [x] Search all indexed Markdown globally or within the active project
 - [x] Debug build succeeds (`xcodebuild -scheme bmd`)  
 - [ ] Optional: install `bmd` on PATH (`ln -s …/scripts/bmd /usr/local/bin/bmd`)  
 - [x] Human smoke-test: open documents, switch, navigate Back, and restore scroll
@@ -116,6 +119,7 @@ We studied it only to know how QL works and what to *avoid*. bmd is greenfield a
 - [x] Keep Updates, Open, navigation, Settings, and Quit available from the menu bar
 - [x] Watched folders surface created/modified files without listing every Markdown file
 - [x] Auto-refresh the current Markdown file after external changes
+- [x] Search by partial filename with `⇧⌘O` globally or `⇧⌘P` in the active project
 - Optional folder grants/bookmarks if App Store sandboxing is added later
 - [x] Better CSS, light/dark
 - [x] Syntax highlighting with highlight.js

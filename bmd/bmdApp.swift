@@ -78,10 +78,18 @@ struct bmdApp: App {
 
                 Divider()
 
-                Button("Switch Document…") {
-                    appState.showQuickSwitcher()
+                Button("Search All Markdown…") {
+                    appState.showGlobalSearch()
                 }
                 .keyboardShortcut("o", modifiers: [.command, .shift])
+
+                Button(
+                    appState.currentProject.map { "Search “\($0.displayName)”…" }
+                        ?? "Search Current Project…"
+                ) {
+                    appState.showCurrentProjectSearch()
+                }
+                .keyboardShortcut("p", modifiers: [.command, .shift])
             }
 
             CommandGroup(after: .toolbar) {

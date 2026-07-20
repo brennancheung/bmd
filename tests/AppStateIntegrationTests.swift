@@ -39,7 +39,22 @@ enum AppStateIntegrationTests {
         expect(state.watchedActivity.isEmpty,
                "opening a file should not create a synthetic update")
 
-        try await Task.sleep(nanoseconds: 300_000_000)
+        for _ in 0..<40 where state.indexedFilesByProject[project.path]?.contains(where: {
+            $0.path == unopened.path
+        }) != true {
+            try await Task.sleep(nanoseconds: 50_000_000)
+        }
+        expect(state.indexedFilesByProject[project.path]?.contains(where: {
+            $0.path == unopened.path
+        }) == true,
+        "the initial watcher snapshot should become a private project search index")
+        state.showProjectSearch(project)
+        expect(state.quickSwitcherCandidates(query: "unop").first?.path == unopened.path,
+               "project search should find an indexed Markdown file before it is opened")
+        state.showCurrentProjectSearch()
+        expect(state.quickSwitcherScope == .project(project),
+               "current-project search should resolve the active document's project")
+
         let originalToken = state.renderToken
         try Data("second version from agent".utf8).write(to: opened, options: .atomic)
         for _ in 0..<60 where state.renderToken == originalToken {

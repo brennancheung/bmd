@@ -44,8 +44,13 @@ xcrun swiftc -parse-as-library \
 "${test_output}/CurrentFileWatcherTests"
 
 xcrun swiftc -parse-as-library \
+  bmd/FuzzyMatcher.swift tests/FuzzyMatcherTests.swift \
+  -o "${test_output}/FuzzyMatcherTests"
+"${test_output}/FuzzyMatcherTests"
+
+xcrun swiftc -parse-as-library \
   bmd/RecentStore.swift bmd/FolderWatcher.swift bmd/SidebarFileState.swift \
-  bmd/DocumentNavigation.swift \
+  bmd/FuzzyMatcher.swift bmd/DocumentNavigation.swift \
   bmd/SidebarStateStore.swift \
   tests/SidebarStateTests.swift \
   -framework CoreServices \
@@ -54,14 +59,14 @@ xcrun swiftc -parse-as-library \
 
 xcrun swiftc -parse-as-library \
   bmd/RecentStore.swift bmd/FolderWatcher.swift bmd/SidebarFileState.swift \
-  bmd/DocumentNavigation.swift tests/DocumentNavigationTests.swift \
+  bmd/FuzzyMatcher.swift bmd/DocumentNavigation.swift tests/DocumentNavigationTests.swift \
   -framework CoreServices \
   -o "${test_output}/DocumentNavigationTests"
 "${test_output}/DocumentNavigationTests"
 
 xcrun swiftc -parse-as-library \
   bmd/RecentStore.swift bmd/FolderWatcher.swift bmd/CurrentFileWatcher.swift \
-  bmd/SidebarFileState.swift bmd/DocumentNavigation.swift \
+  bmd/SidebarFileState.swift bmd/FuzzyMatcher.swift bmd/DocumentNavigation.swift \
   bmd/SidebarStateStore.swift bmd/AppPreferences.swift bmd/AppState.swift \
   tests/AppStateIntegrationTests.swift \
   -framework AppKit -framework Combine -framework UniformTypeIdentifiers \

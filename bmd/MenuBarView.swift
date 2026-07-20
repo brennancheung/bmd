@@ -108,9 +108,20 @@ struct MenuBarView: View {
 
         Button {
             showMainWindow()
-            appState.showQuickSwitcher()
+            appState.showGlobalSearch()
         } label: {
-            Label("Switch Document…", systemImage: "doc.text.magnifyingglass")
+            Label("Search All Markdown…", systemImage: "doc.text.magnifyingglass")
+        }
+
+        Button {
+            showMainWindow()
+            appState.showCurrentProjectSearch()
+        } label: {
+            Label(
+                appState.currentProject.map { "Search \($0.displayName)…" }
+                    ?? "Search Current Project…",
+                systemImage: "folder.badge.questionmark"
+            )
         }
 
         Divider()

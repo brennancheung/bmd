@@ -35,11 +35,11 @@ struct ContentView: View {
                 .help("Forward in Document History (⌘])")
 
                 Button {
-                    appState.showQuickSwitcher()
+                    appState.showGlobalSearch()
                 } label: {
-                    Label("Switch Document", systemImage: "doc.text.magnifyingglass")
+                    Label("Search All Markdown", systemImage: "doc.text.magnifyingglass")
                 }
-                .help("Switch Document (⇧⌘O)")
+                .help("Search All Markdown (⇧⌘O)")
 
                 Menu {
                     ForEach(AppearancePreference.allCases) { appearance in
@@ -89,7 +89,7 @@ struct ContentView: View {
         .sheet(isPresented: $appState.isQuickSwitcherPresented) {
             QuickSwitcherView()
                 .environmentObject(appState)
-                .frame(minWidth: 620, minHeight: 430)
+                .frame(minWidth: 720, minHeight: 520)
         }
     }
 
@@ -411,12 +411,12 @@ private struct ProjectSidebarRow: View {
                 .buttonStyle(.plain)
 
                 Button {
-                    appState.presentProjectMarkdownPanel(project)
+                    appState.showProjectSearch(project)
                 } label: {
                     Image(systemName: "magnifyingglass")
                 }
                 .buttonStyle(.borderless)
-                .help("Open Markdown in \(project.displayName)")
+                .help("Search Markdown in \(project.displayName)")
 
                 Button {
                     revealInFinder(project.url)
@@ -442,150 +442,6 @@ private struct ProjectSidebarRow: View {
                 appState.removeProject(project)
             }
         }
-    }
-}
-
-private struct QuickSwitcherView: View {
-    @Environment(\.dismiss) private var dismiss
-    @EnvironmentObject private var appState: AppState
-    @FocusState private var searchIsFocused: Bool
-    @State private var query = ""
-    @State private var selection: String?
-
-    private var candidates: [DocumentCandidate] {
-        appState.quickSwitcherCandidates(query: query)
-    }
-
-    var body: some View {
-        VStack(spacing: 0) {
-            HStack(spacing: 10) {
-                Image(systemName: "magnifyingglass")
-                    .foregroundStyle(.secondary)
-                TextField("Search open documents, updates, and projects", text: $query)
-                    .textFieldStyle(.plain)
-                    .font(.title3)
-                    .focused($searchIsFocused)
-                    .onSubmit(openSelection)
-                if !query.isEmpty {
-                    Button {
-                        query = ""
-                    } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .foregroundStyle(.secondary)
-                    }
-                    .buttonStyle(.plain)
-                    .help("Clear Search")
-                }
-            }
-            .padding(.horizontal, 18)
-            .padding(.vertical, 15)
-
-            Divider()
-
-            if candidates.isEmpty {
-                ContentUnavailableView.search(text: query)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else {
-                List(candidates, selection: $selection) { candidate in
-                    Button {
-                        open(candidate)
-                    } label: {
-                        HStack(spacing: 10) {
-                            Image(systemName: candidate.source.systemImage)
-                                .foregroundStyle(
-                                    candidate.hasUnreadUpdate
-                                        ? Color.accentColor
-                                        : Color.secondary
-                                )
-                                .frame(width: 18)
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(candidate.displayName)
-                                    .lineLimit(1)
-                                Text(candidate.contextLabel)
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                                    .lineLimit(1)
-                                    .truncationMode(.middle)
-                            }
-                            Spacer()
-                            if candidate.hasUnreadUpdate {
-                                Text("Updated")
-                                    .font(.caption2)
-                                    .foregroundStyle(Color.accentColor)
-                            }
-                            Text(candidate.source.title)
-                                .font(.caption2)
-                                .foregroundStyle(.tertiary)
-                        }
-                        .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .tag(candidate.path)
-                }
-                .listStyle(.inset)
-            }
-
-            Divider()
-
-            HStack {
-                Text("↑↓ to select  •  Return to open  •  Esc to close")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                Spacer()
-                Button("Cancel") {
-                    dismiss()
-                }
-                Button("Open") {
-                    openSelection()
-                }
-                .keyboardShortcut(.defaultAction)
-                .disabled(selection == nil)
-            }
-            .padding(12)
-        }
-        .onAppear {
-            selection = candidates.first?.path
-            searchIsFocused = true
-        }
-        .onChange(of: query) {
-            if !candidates.contains(where: { $0.path == selection }) {
-                selection = candidates.first?.path
-            }
-        }
-        .onMoveCommand { direction in
-            moveSelection(direction)
-        }
-        .onExitCommand {
-            dismiss()
-        }
-    }
-
-    private func openSelection() {
-        guard let selection,
-              let candidate = candidates.first(where: { $0.path == selection }) else {
-            return
-        }
-        open(candidate)
-    }
-
-    private func open(_ candidate: DocumentCandidate) {
-        appState.openFile(candidate.url)
-        dismiss()
-    }
-
-    private func moveSelection(_ direction: MoveCommandDirection) {
-        guard !candidates.isEmpty else { return }
-        let currentIndex = candidates.firstIndex(where: { $0.path == selection }) ?? 0
-        let nextIndex: Int
-        switch direction {
-        case .up:
-            nextIndex = max(currentIndex - 1, 0)
-        case .down:
-            nextIndex = min(currentIndex + 1, candidates.count - 1)
-        default:
-            return
-        }
-        selection = candidates[nextIndex].path
     }
 }
 

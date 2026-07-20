@@ -145,6 +145,23 @@ enum DocumentCandidateSource: String, Codable, Hashable {
     }
 }
 
+enum DocumentSearchScope: Equatable {
+    case global
+    case project(BookmarkItem)
+    case unavailableProject(URL?)
+
+    var title: String {
+        switch self {
+        case .global:
+            "All Projects"
+        case let .project(project):
+            project.displayName
+        case .unavailableProject:
+            "Current Project"
+        }
+    }
+}
+
 struct DocumentCandidate: Identifiable, Hashable {
     let path: String
     let displayName: String
@@ -152,9 +169,47 @@ struct DocumentCandidate: Identifiable, Hashable {
     let source: DocumentCandidateSource
     let activityDate: Date
     let hasUnreadUpdate: Bool
+    let displayNameMatchRanges: [FuzzyMatchRange]
+    let contextMatchRanges: [FuzzyMatchRange]
 
     var id: String { path }
     var url: URL { URL(fileURLWithPath: path) }
+
+    init(
+        path: String,
+        displayName: String,
+        contextLabel: String,
+        source: DocumentCandidateSource,
+        activityDate: Date,
+        hasUnreadUpdate: Bool,
+        displayNameMatchRanges: [FuzzyMatchRange] = [],
+        contextMatchRanges: [FuzzyMatchRange] = []
+    ) {
+        self.path = path
+        self.displayName = displayName
+        self.contextLabel = contextLabel
+        self.source = source
+        self.activityDate = activityDate
+        self.hasUnreadUpdate = hasUnreadUpdate
+        self.displayNameMatchRanges = displayNameMatchRanges
+        self.contextMatchRanges = contextMatchRanges
+    }
+
+    func highlighting(
+        displayNameRanges: [FuzzyMatchRange],
+        contextRanges: [FuzzyMatchRange]
+    ) -> DocumentCandidate {
+        DocumentCandidate(
+            path: path,
+            displayName: displayName,
+            contextLabel: contextLabel,
+            source: source,
+            activityDate: activityDate,
+            hasUnreadUpdate: hasUnreadUpdate,
+            displayNameMatchRanges: displayNameRanges,
+            contextMatchRanges: contextRanges
+        )
+    }
 }
 
 enum DocumentNavigation {
@@ -246,7 +301,9 @@ enum DocumentNavigation {
         projectFilesByFolder: [String: [BookmarkItem]],
         history: DocumentHistoryState,
         currentPath: String?,
-        query: String
+        query: String,
+        searchScope: DocumentSearchScope = .global,
+        indexedFilesByProject: [String: [WatchedMarkdownFile]] = [:]
     ) -> [DocumentCandidate] {
         let unreadByPath = Dictionary(
             updates.filter { $0.readAt == nil }.map { ($0.path, $0) },
@@ -258,7 +315,11 @@ enum DocumentNavigation {
             byPath[item.path] = DocumentCandidate(
                 path: item.path,
                 displayName: item.displayName,
-                contextLabel: contextLabel(for: item.url, projects: projects),
+                contextLabel: contextLabel(
+                    for: item.url,
+                    projects: projects,
+                    scope: searchScope
+                ),
                 source: .open,
                 activityDate: item.lastViewedAt,
                 hasUnreadUpdate: unreadByPath[item.path] != nil
@@ -269,7 +330,11 @@ enum DocumentNavigation {
             byPath[item.path] = DocumentCandidate(
                 path: item.path,
                 displayName: item.displayName,
-                contextLabel: item.contextLabel,
+                contextLabel: contextLabel(
+                    for: item.url,
+                    projects: projects,
+                    scope: searchScope
+                ),
                 source: .update,
                 activityDate: item.detectedAt,
                 hasUnreadUpdate: true
@@ -281,7 +346,11 @@ enum DocumentNavigation {
                 byPath[item.path] = DocumentCandidate(
                     path: item.path,
                     displayName: item.displayName,
-                    contextLabel: contextLabel(for: item.url, projects: projects),
+                    contextLabel: contextLabel(
+                        for: item.url,
+                        projects: projects,
+                        scope: searchScope
+                    ),
                     source: .project,
                     activityDate: item.lastOpenedAt,
                     hasUnreadUpdate: unreadByPath[item.path] != nil
@@ -294,7 +363,11 @@ enum DocumentNavigation {
             byPath[path] = DocumentCandidate(
                 path: path,
                 displayName: url.lastPathComponent,
-                contextLabel: contextLabel(for: url, projects: projects),
+                contextLabel: contextLabel(
+                    for: url,
+                    projects: projects,
+                    scope: searchScope
+                ),
                 source: .history,
                 activityDate: .distantPast,
                 hasUnreadUpdate: unreadByPath[path] != nil
@@ -302,16 +375,45 @@ enum DocumentNavigation {
         }
 
         let terms = query
-            .lowercased()
             .split(whereSeparator: \Character.isWhitespace)
             .map(String.init)
-        return byPath.values
-            .filter { candidate in
-                guard !terms.isEmpty else { return true }
-                let searchable = "\(candidate.displayName) \(candidate.contextLabel) \(candidate.path)"
-                    .lowercased()
-                return terms.allSatisfy(searchable.contains)
+
+        if !terms.isEmpty {
+            let indexedProjects: [BookmarkItem]
+            switch searchScope {
+            case .global:
+                indexedProjects = projects
+            case let .project(project):
+                indexedProjects = [project]
+            case .unavailableProject:
+                indexedProjects = []
             }
+
+            for project in indexedProjects {
+                for file in indexedFilesByProject[project.path] ?? []
+                    where byPath[file.path] == nil {
+                    byPath[file.path] = DocumentCandidate(
+                        path: file.path,
+                        displayName: file.displayName,
+                        contextLabel: contextLabel(
+                            for: file.url,
+                            projects: projects,
+                            scope: searchScope
+                        ),
+                        source: .project,
+                        activityDate: file.modifiedAt,
+                        hasUnreadUpdate: unreadByPath[file.path] != nil
+                    )
+                }
+            }
+        }
+
+        let scopedCandidates = byPath.values.filter {
+            scope(searchScope, contains: $0.url)
+        }
+
+        guard !terms.isEmpty else {
+            return scopedCandidates
             .sorted { left, right in
                 let leftScore = rankingScore(left, currentPath: currentPath, terms: terms)
                 let rightScore = rankingScore(right, currentPath: currentPath, terms: terms)
@@ -322,18 +424,183 @@ enum DocumentNavigation {
                 return left.displayName.localizedCaseInsensitiveCompare(right.displayName)
                     == .orderedAscending
             }
+        }
+
+        let rankedCandidates = scopedCandidates
+            .compactMap { candidate -> (DocumentCandidate, Int)? in
+                guard let match = searchMatch(terms: terms, candidate: candidate) else {
+                    return nil
+                }
+                return (
+                    candidate.highlighting(
+                        displayNameRanges: match.displayNameRanges,
+                        contextRanges: match.contextRanges
+                    ),
+                    match.score
+                )
+            }
+            .sorted { left, right in
+                if left.1 != right.1 { return left.1 > right.1 }
+                let leftSource = sourceTieBreakScore(left.0, currentPath: currentPath)
+                let rightSource = sourceTieBreakScore(right.0, currentPath: currentPath)
+                if leftSource != rightSource { return leftSource > rightSource }
+                if left.0.activityDate != right.0.activityDate {
+                    return left.0.activityDate > right.0.activityDate
+                }
+                return left.0.displayName.localizedCaseInsensitiveCompare(right.0.displayName)
+                    == .orderedAscending
+            }
+        return Array(rankedCandidates.prefix(100).map(\.0))
     }
 
-    private static func contextLabel(for file: URL, projects: [BookmarkItem]) -> String {
-        guard let project = SidebarFileState.containingProject(
+    private static func contextLabel(
+        for file: URL,
+        projects: [BookmarkItem],
+        scope: DocumentSearchScope
+    ) -> String {
+        guard let containingProject = SidebarFileState.containingProject(
             for: file,
             projects: projects
         ) else {
-            return file.deletingLastPathComponent().lastPathComponent
+            return [file.deletingLastPathComponent().lastPathComponent, file.lastPathComponent]
+                .filter { !$0.isEmpty }
+                .joined(separator: " › ")
         }
-        let relative = MarkdownFolderDiscovery.relativePath(for: file, in: project.url)
-        let directory = (relative as NSString).deletingLastPathComponent
-        return directory.isEmpty ? project.displayName : "\(project.displayName) / \(directory)"
+        switch scope {
+        case let .project(scopedProject):
+            let relative = MarkdownFolderDiscovery.relativePath(for: file, in: scopedProject.url)
+            let relativeComponents = relative.split(separator: "/").map(String.init)
+            return relativeComponents.joined(separator: " › ")
+        default:
+            let relative = MarkdownFolderDiscovery.relativePath(for: file, in: containingProject.url)
+            let relativeComponents = relative.split(separator: "/").map(String.init)
+            return ([containingProject.displayName] + relativeComponents).joined(separator: " › ")
+        }
+    }
+
+    private struct CandidateSearchMatch {
+        let score: Int
+        let displayNameRanges: [FuzzyMatchRange]
+        let contextRanges: [FuzzyMatchRange]
+    }
+
+    private static func searchMatch(
+        terms: [String],
+        candidate: DocumentCandidate
+    ) -> CandidateSearchMatch? {
+        var score = 0
+        var filenameTermCount = 0
+        var displayNameRanges: [FuzzyMatchRange] = []
+        var contextRanges: [FuzzyMatchRange] = []
+        let filenameStem = (candidate.displayName as NSString).deletingPathExtension
+
+        for term in terms {
+            let filenameSearchText = term.contains(".") ? candidate.displayName : filenameStem
+            let filenameMatch = FuzzyMatcher.score(query: term, candidate: filenameSearchText)
+            let contextMatch = FuzzyMatcher.score(query: term, candidate: candidate.contextLabel)
+            let filenameScore = filenameMatch.map {
+                weightedFilenameScore(term: term, candidate: filenameSearchText, fuzzy: $0)
+            }
+            let contextScore = contextMatch.map {
+                weightedContextScore(term: term, candidate: candidate.contextLabel, fuzzy: $0)
+            }
+
+            switch (filenameScore, contextScore) {
+            case (nil, nil):
+                return nil
+            case let (.some(filenameScore), .some(contextScore)) where contextScore > filenameScore:
+                score += contextScore
+                contextRanges.append(contentsOf: contextMatch?.ranges ?? [])
+            case let (.some(filenameScore), _):
+                score += filenameScore
+                filenameTermCount += 1
+                displayNameRanges.append(contentsOf: filenameMatch?.ranges ?? [])
+            case let (nil, .some(contextScore)):
+                score += contextScore
+                contextRanges.append(contentsOf: contextMatch?.ranges ?? [])
+            }
+        }
+
+        return CandidateSearchMatch(
+            score: filenameTermCount * 1_000_000 + score,
+            displayNameRanges: mergedRanges(displayNameRanges),
+            contextRanges: mergedRanges(contextRanges)
+        )
+    }
+
+    private static func weightedFilenameScore(
+        term: String,
+        candidate: String,
+        fuzzy: FuzzyMatch
+    ) -> Int {
+        let foldedTerm = folded(term)
+        let foldedCandidate = folded(candidate)
+        if foldedCandidate == foldedTerm { return 100_000 + fuzzy.score }
+        if foldedCandidate.hasPrefix(foldedTerm) { return 50_000 + fuzzy.score }
+        if foldedCandidate.contains(foldedTerm) { return 25_000 + fuzzy.score }
+        return 10_000 + max(fuzzy.score, 0) * 100
+    }
+
+    private static func weightedContextScore(
+        term: String,
+        candidate: String,
+        fuzzy: FuzzyMatch
+    ) -> Int {
+        let foldedTerm = folded(term)
+        let foldedCandidate = folded(candidate)
+        if foldedCandidate.hasPrefix(foldedTerm) { return 5_000 + fuzzy.score }
+        if foldedCandidate.contains(foldedTerm) { return 2_500 + fuzzy.score }
+        return 1_000 + max(fuzzy.score, 0) * 10
+    }
+
+    private static func folded(_ value: String) -> String {
+        value.folding(
+            options: [.caseInsensitive, .diacriticInsensitive],
+            locale: .current
+        ).lowercased()
+    }
+
+    private static func mergedRanges(_ ranges: [FuzzyMatchRange]) -> [FuzzyMatchRange] {
+        let indices = Set(ranges.flatMap { range in
+            range.start..<(range.start + range.length)
+        })
+        return indices.sorted().reduce(into: []) { result, index in
+            if let last = result.last, index == last.start + last.length {
+                result[result.count - 1] = FuzzyMatchRange(
+                    start: last.start,
+                    length: last.length + 1
+                )
+            } else {
+                result.append(FuzzyMatchRange(start: index, length: 1))
+            }
+        }
+    }
+
+    private static func scope(_ scope: DocumentSearchScope, contains file: URL) -> Bool {
+        switch scope {
+        case .global:
+            true
+        case let .project(project):
+            SidebarFileState.contains(file: file, in: project.url)
+        case .unavailableProject:
+            false
+        }
+    }
+
+    private static func sourceTieBreakScore(
+        _ candidate: DocumentCandidate,
+        currentPath: String?
+    ) -> Int {
+        var score: Int
+        switch candidate.source {
+        case .open: score = 4
+        case .update: score = 3
+        case .project: score = 2
+        case .history: score = 1
+        }
+        if candidate.hasUnreadUpdate { score += 1 }
+        if candidate.path == currentPath { score -= 10 }
+        return score
     }
 
     private static func rankingScore(

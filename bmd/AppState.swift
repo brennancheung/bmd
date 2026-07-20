@@ -13,8 +13,10 @@ final class AppState: ObservableObject {
     @Published var projects: [BookmarkItem]
     @Published private(set) var watchedActivity: [WatchedActivityItem]
     @Published private(set) var projectFilesByFolder: [String: [BookmarkItem]]
+    @Published private(set) var indexedFilesByProject: [String: [WatchedMarkdownFile]]
     @Published private(set) var history: DocumentHistoryState
     @Published var isQuickSwitcherPresented = false
+    @Published private(set) var quickSwitcherScope: DocumentSearchScope = .global
 
     private let store: RecentStore
     private let sidebarStore: SidebarStateStore
@@ -55,6 +57,7 @@ final class AppState: ObservableObject {
         projects = loadedProjects
         watchedActivity = sidebarStore.loadActivity()
         projectFilesByFolder = loadedProjectFiles
+        indexedFilesByProject = [:]
         history = sidebarStore.loadHistory()
         sidebarStore.saveProjectFiles(loadedProjectFiles)
 
@@ -77,6 +80,10 @@ final class AppState: ObservableObject {
 
     var canGoBack: Bool { history.canGoBack }
     var canGoForward: Bool { history.canGoForward }
+    var currentProject: BookmarkItem? {
+        guard let currentFile else { return nil }
+        return SidebarFileState.containingProject(for: currentFile, projects: projects)
+    }
 
     func presentOpenPanel() {
         presentOpenPanel(startingAt: nil, restrictToMarkdown: false)
@@ -196,6 +203,7 @@ final class AppState: ObservableObject {
     func removeProject(_ item: BookmarkItem) {
         projects = store.removeProject(item)
         projectFilesByFolder[item.path] = nil
+        indexedFilesByProject[item.path] = nil
         sidebarStore.saveProjectFiles(projectFilesByFolder)
         restartFolderWatcher()
     }
@@ -288,12 +296,42 @@ final class AppState: ObservableObject {
             projectFilesByFolder: projectFilesByFolder,
             history: history,
             currentPath: currentFile?.path,
-            query: query
+            query: query,
+            searchScope: quickSwitcherScope,
+            indexedFilesByProject: indexedFilesByProject
         ).filter { FileManager.default.fileExists(atPath: $0.path) }
     }
 
     func showQuickSwitcher() {
+        showGlobalSearch()
+    }
+
+    func showGlobalSearch() {
+        quickSwitcherScope = .global
         isQuickSwitcherPresented = true
+    }
+
+    func showProjectSearch(_ project: BookmarkItem) {
+        quickSwitcherScope = .project(project)
+        isQuickSwitcherPresented = true
+    }
+
+    func showCurrentProjectSearch() {
+        if let currentProject {
+            showProjectSearch(currentProject)
+        } else {
+            quickSwitcherScope = .unavailableProject(currentFile)
+            isQuickSwitcherPresented = true
+        }
+    }
+
+    func addCurrentDocumentFolderAsProject() {
+        guard case let .unavailableProject(file?) = quickSwitcherScope else { return }
+        let directory = file.deletingLastPathComponent()
+        addProject(directory)
+        if let project = projects.first(where: { $0.path == directory.standardizedFileURL.path }) {
+            quickSwitcherScope = .project(project)
+        }
     }
 
     func goBack() {
@@ -343,9 +381,13 @@ final class AppState: ObservableObject {
     }
 
     private func applyFolderUpdate(_ update: WatchedFolderUpdate, detectedAt: Date) {
-        guard projects.contains(where: { $0.path == update.rootPath }),
-              !update.isInitial,
-              !update.changedFiles.isEmpty else {
+        guard projects.contains(where: { $0.path == update.rootPath }) else {
+            return
+        }
+        indexedFilesByProject[update.rootPath] = update.files
+        guard
+            !update.isInitial,
+            !update.changedFiles.isEmpty else {
             return
         }
         watchedActivity = SidebarFileState.mergeActivity(

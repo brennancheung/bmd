@@ -48,6 +48,12 @@
 - [x] Restore each document's scroll position while switching during a session
 - [x] Add a searchable Quick Switcher across Open, Updates, Projects, and history
 - [x] Confine frecency ranking to the transient Quick Switcher
+- [x] Index every Markdown file in added projects without turning Projects into a file tree
+- [x] Add filename-first fuzzy matching with boundary, adjacency, and exact-match weighting
+- [x] Add separate global (`⇧⌘O`) and active-project (`⇧⌘P`) search scopes
+- [x] Add keyboard-only search navigation with arrows, `⌃J` / `⌃K`, paging, and Return
+- [x] Highlight the filename and path fragments responsible for each match
+- [x] Keep large repositories responsive and cap the low-value result tail
 - [x] Update the menu-bar companion for the Open and Updates model
 
 ## Watched-folder workflow
@@ -107,7 +113,7 @@ bmd "$OUT/report.md"
 ```
 
 App activates, opens the file, and adds it to the stable Open working set. The
-human uses Open, Back/Forward, or Quick Switcher to move between documents.
+human uses Open, Back/Forward, or scoped search to move between documents.
 
 ## Tech choices (v1)
 

@@ -10,6 +10,9 @@ enum DocumentNavigationTests {
         testCloseReplacement()
         testBackForwardHistory()
         testQuickSwitcherDeduplicationAndSearch()
+        testIndexedProjectSearchAndScope()
+        testFilenameRelevanceOutranksState()
+        testMultipleFilenameTermsOutrankPathEvidence()
         testLegacyRecentsMigration()
         print("DocumentNavigationTests passed")
     }
@@ -176,6 +179,108 @@ enum DocumentNavigationTests {
                "the switcher should select an alternative before the current document")
     }
 
+    private static func testIndexedProjectSearchAndScope() {
+        let alpha = BookmarkItem.folder(URL(fileURLWithPath: "/tmp/alpha"))
+        let beta = BookmarkItem.folder(URL(fileURLWithPath: "/tmp/beta"))
+        let alphaFile = watchedFile(root: alpha.path, relative: "docs/agent-plan.md")
+        let betaFile = watchedFile(root: beta.path, relative: "docs/agent-plan.md")
+        let index = [
+            alpha.path: [alphaFile],
+            beta.path: [betaFile],
+        ]
+
+        let idle = DocumentNavigation.candidates(
+            openDocuments: [],
+            updates: [],
+            projects: [alpha, beta],
+            projectFilesByFolder: [:],
+            history: DocumentHistoryState(),
+            currentPath: nil,
+            query: "",
+            indexedFilesByProject: index
+        )
+        expect(idle.isEmpty,
+               "the private file index should not become a persistent project file tree")
+
+        let scoped = DocumentNavigation.candidates(
+            openDocuments: [],
+            updates: [],
+            projects: [alpha, beta],
+            projectFilesByFolder: [:],
+            history: DocumentHistoryState(),
+            currentPath: nil,
+            query: "agpl",
+            searchScope: .project(alpha),
+            indexedFilesByProject: index
+        )
+        expect(scoped.map(\.path) == [alphaFile.path],
+               "project search should include unopened files only from its fixed scope")
+        expect(scoped.first?.contextLabel == "docs › agent-plan.md",
+               "project-scoped results should show paths relative to the project root")
+        expect(scoped.first?.displayNameMatchRanges.isEmpty == false,
+               "fuzzy results should retain filename ranges for visual highlighting")
+
+        let global = DocumentNavigation.candidates(
+            openDocuments: [],
+            updates: [],
+            projects: [alpha, beta],
+            projectFilesByFolder: [:],
+            history: DocumentHistoryState(),
+            currentPath: nil,
+            query: "agpl",
+            indexedFilesByProject: index
+        )
+        expect(global.count == 2,
+               "global search should include unopened files from every project")
+        expect(global.allSatisfy { $0.contextLabel.contains("agent-plan.md") },
+               "global results should preserve project-relative file identity")
+    }
+
+    private static func testFilenameRelevanceOutranksState() {
+        let project = BookmarkItem.folder(URL(fileURLWithPath: "/tmp/project"))
+        let weakOpen = OpenDocumentItem(
+            file: URL(fileURLWithPath: "/tmp/project/docs/planning-notes.md"),
+            at: date(4)
+        )
+        let exact = watchedFile(root: project.path, relative: "archive/plan.md")
+        let candidates = DocumentNavigation.candidates(
+            openDocuments: [weakOpen],
+            updates: [],
+            projects: [project],
+            projectFilesByFolder: [:],
+            history: DocumentHistoryState(),
+            currentPath: nil,
+            query: "plan",
+            indexedFilesByProject: [project.path: [exact]]
+        )
+        expect(candidates.first?.path == exact.path,
+               "an exact filename should outrank a weaker match that is already open")
+    }
+
+    private static func testMultipleFilenameTermsOutrankPathEvidence() {
+        let project = BookmarkItem.folder(URL(fileURLWithPath: "/tmp/project"))
+        let intended = watchedFile(
+            root: project.path,
+            relative: "examples/rendering-showcase.md"
+        )
+        let partial = watchedFile(
+            root: project.path,
+            relative: "rendering-notes/show-ssh-keys.md"
+        )
+        let candidates = DocumentNavigation.candidates(
+            openDocuments: [],
+            updates: [],
+            projects: [project],
+            projectFilesByFolder: [:],
+            history: DocumentHistoryState(),
+            currentPath: nil,
+            query: "rnd show",
+            indexedFilesByProject: [project.path: [partial, intended]]
+        )
+        expect(candidates.first?.path == intended.path,
+               "matching every query term in the filename should outrank path-only evidence")
+    }
+
     private static func testLegacyRecentsMigration() {
         let suiteName = "bmd-navigation-tests-\(UUID().uuidString)"
         guard let defaults = UserDefaults(suiteName: suiteName) else {
@@ -210,6 +315,19 @@ enum DocumentNavigationTests {
 
     private static func date(_ interval: TimeInterval) -> Date {
         Date(timeIntervalSince1970: interval)
+    }
+
+    private static func watchedFile(
+        root: String,
+        relative: String
+    ) -> WatchedMarkdownFile {
+        WatchedMarkdownFile(
+            rootPath: root,
+            path: URL(fileURLWithPath: root).appendingPathComponent(relative).path,
+            relativePath: relative,
+            modifiedAt: date(1),
+            byteSize: 1
+        )
     }
 
     private static func expect(
