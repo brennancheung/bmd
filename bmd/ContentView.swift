@@ -180,8 +180,8 @@ struct SidebarView: View {
             }
         }
         .listStyle(.sidebar)
-        .padding(.top, 16)
-        .padding(.trailing, 16)
+        .padding(.top, 8)
+        .padding(.trailing, 8)
         .safeAreaInset(edge: .bottom) {
             HStack {
                 Button {
