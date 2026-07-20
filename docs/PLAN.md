@@ -29,6 +29,7 @@
 - [x] Add visible toolbar access to Settings and appearance controls
 - [x] Add Settings for default zoom, prose/table widths, and semantic window width
 - [x] Make sidebar section-label scale configurable
+- [x] Preserve the current document's scroll position across automatic refreshes
 - [x] Disable stale frame restoration and keep windows on-screen across monitor changes
 - [x] Install every scheme build to a stable `/Applications/bmd.app`
 - [x] Register or select bmd as the macOS default Markdown viewer

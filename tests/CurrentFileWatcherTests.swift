@@ -35,6 +35,28 @@ enum CurrentFileWatcherTests {
         expect(changes.last?.byteSize == "second version".utf8.count,
                "the watcher should publish the replacement file's latest contents")
 
+        let polledFile = root.appendingPathComponent("polled.md")
+        try Data("first".utf8).write(to: polledFile)
+        let pollingWatcher = CurrentMarkdownFileWatcher(
+            pollingInterval: 0.05,
+            eventStreamEnabled: false
+        )
+        var polledChanges: [MarkdownFileSnapshot] = []
+        pollingWatcher.onChange = { snapshot in
+            polledChanges.append(snapshot)
+        }
+        pollingWatcher.watch(file: polledFile)
+        try await Task.sleep(nanoseconds: 100_000_000)
+        try Data("later".utf8).write(to: polledFile)
+
+        for _ in 0..<40 where polledChanges.isEmpty {
+            try await Task.sleep(nanoseconds: 50_000_000)
+        }
+        expect(polledChanges.last?.path == polledFile.path,
+               "polling should catch an in-place change when no file event arrives")
+        expect(polledChanges.last?.byteSize == "later".utf8.count,
+               "polling should publish the in-place file's latest snapshot")
+
         print("CurrentFileWatcherTests passed")
     }
 

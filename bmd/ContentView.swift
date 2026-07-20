@@ -350,6 +350,7 @@ struct DetailView: View {
             MarkdownWebView(
                 markdown: appState.markdownText,
                 title: appState.currentTitle,
+                documentIdentifier: appState.currentFile?.standardizedFileURL.path,
                 baseDirectory: appState.baseDirectory,
                 renderToken: appState.renderToken,
                 zoomScale: preferences.zoomScale,

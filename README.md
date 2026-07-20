@@ -48,7 +48,8 @@ window is closed.
 ### Follow work as it changes
 
 Keep a document open while an agent updates it. bmd notices changes and refreshes
-the page automatically, so you can keep reading instead of reopening the file.
+the page automatically without losing your scroll position, so you can keep
+reading instead of reopening the file or finding your place again.
 
 ### Open it ready to read
 

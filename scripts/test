@@ -60,7 +60,7 @@ xcrun swiftc -parse-as-library \
   -o "${test_output}/AppStateIntegrationTests"
 "${test_output}/AppStateIntegrationTests"
 
-BMD_APPEARANCE=light ./scripts/render-headless.swift \
+BMD_APPEARANCE=light BMD_VERIFY_SCROLL=1 ./scripts/render-headless.swift \
   examples/rendering-showcase.md build/headless/showcase-light.png
 BMD_APPEARANCE=dark ./scripts/render-headless.swift \
   examples/rendering-showcase.md build/headless/showcase-dark.png

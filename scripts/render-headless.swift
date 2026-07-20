@@ -43,6 +43,7 @@ private struct RenderInputs {
     let outputURL: URL
     let viewerDirectory: URL
     let appearance: String
+    let verifyScroll: Bool
 
     init(arguments: [String]) throws {
         guard arguments.count == 2 || arguments.count == 3 else {
@@ -87,6 +88,7 @@ private struct RenderInputs {
         guard appearance == "light" || appearance == "dark" else {
             throw HeadlessRenderError.invalidAppearance(appearance)
         }
+        verifyScroll = ProcessInfo.processInfo.environment["BMD_VERIFY_SCROLL"] == "1"
     }
 }
 
@@ -216,6 +218,7 @@ private final class HeadlessRenderer: NSObject, WKNavigationDelegate {
     private let title: String
     private let outputURL: URL
     private let appearance: String
+    private let verifyScroll: Bool
     private let assetHandler: HeadlessLocalAssetHandler
     private let webView: WKWebView
     private var timeoutTimer: Timer?
@@ -225,6 +228,7 @@ private final class HeadlessRenderer: NSObject, WKNavigationDelegate {
         title: String,
         outputURL: URL,
         appearance: String,
+        verifyScroll: Bool,
         documentDirectory: URL,
         viewerDirectory: URL
     ) {
@@ -232,6 +236,7 @@ private final class HeadlessRenderer: NSObject, WKNavigationDelegate {
         self.title = title
         self.outputURL = outputURL
         self.appearance = appearance
+        self.verifyScroll = verifyScroll
         assetHandler = HeadlessLocalAssetHandler(
             documentDirectory: documentDirectory,
             viewerDirectory: viewerDirectory
@@ -252,7 +257,7 @@ private final class HeadlessRenderer: NSObject, WKNavigationDelegate {
     }
 
     func start(html: String) {
-        timeoutTimer = Timer.scheduledTimer(withTimeInterval: 15, repeats: false) { [weak self] _ in
+        timeoutTimer = Timer.scheduledTimer(withTimeInterval: 30, repeats: false) { [weak self] _ in
             Task { @MainActor in
                 self?.finish(with: .failure(HeadlessRenderError.timedOut))
             }
@@ -268,13 +273,50 @@ private final class HeadlessRenderer: NSObject, WKNavigationDelegate {
                     if (typeof window.bmdRender !== "function") {
                       throw new Error("Bundled Markdown renderer did not load");
                     }
+                    let scrollPreserved = true;
+                    let newDocumentReset = true;
+                    if (verifyScroll) {
+                      const probeMarkdown = Array(120)
+                        .fill(
+                          "## Scroll preservation probe\\n\\n" +
+                          "A paragraph long enough to create a stable reading position."
+                        )
+                        .join("\\n\\n");
+                      await window.bmdRender(
+                        probeMarkdown,
+                        "scroll-probe.md",
+                        appearance,
+                        820,
+                        1200,
+                        false
+                      );
+                      const maximumScroll = Math.max(
+                        0,
+                        document.documentElement.scrollHeight - window.innerHeight
+                      );
+                      if (maximumScroll > 100) {
+                        const targetScroll = Math.min(600, maximumScroll);
+                        window.scrollTo(0, targetScroll);
+                        await window.bmdRender(
+                          probeMarkdown + "\\n\\n<!-- refreshed -->",
+                          "scroll-probe.md",
+                          appearance,
+                          820,
+                          1200,
+                          true
+                        );
+                        scrollPreserved = Math.abs(window.scrollY - targetScroll) <= 1;
+                      }
+                    }
                     const summary = await window.bmdRender(
                       markdown,
                       title,
                       appearance,
                       820,
-                      1200
+                      1200,
+                      false
                     );
+                    newDocumentReset = window.scrollY <= 1;
                     await document.fonts.ready;
                     await Promise.all(Array.from(document.images).map((image) => {
                       if (image.complete) return Promise.resolve();
@@ -295,6 +337,8 @@ private final class HeadlessRenderer: NSObject, WKNavigationDelegate {
                       documentWidth: Math.ceil(root.scrollWidth),
                       viewportWidth: Math.ceil(root.clientWidth),
                       horizontalOverflow: root.scrollWidth > root.clientWidth + 1,
+                      scrollPreserved,
+                      newDocumentReset,
                       tableAligned: !table || !prose ||
                         Math.abs(table.getBoundingClientRect().left - prose.getBoundingClientRect().left) <= 1,
                     };
@@ -305,6 +349,7 @@ private final class HeadlessRenderer: NSObject, WKNavigationDelegate {
                         "markdown": markdown,
                         "title": title,
                         "appearance": appearance,
+                        "verifyScroll": verifyScroll,
                     ],
                     in: nil,
                     contentWorld: .page
@@ -321,6 +366,18 @@ private final class HeadlessRenderer: NSObject, WKNavigationDelegate {
                     if (values["tableAligned"] as? NSNumber)?.boolValue == false {
                         throw HeadlessRenderError.invalidLayout(
                             "table does not share the prose left edge"
+                        )
+                    }
+                    if verifyScroll,
+                       (values["scrollPreserved"] as? NSNumber)?.boolValue != true {
+                        throw HeadlessRenderError.invalidLayout(
+                            "automatic refresh did not preserve vertical scroll"
+                        )
+                    }
+                    if verifyScroll,
+                       (values["newDocumentReset"] as? NSNumber)?.boolValue != true {
+                        throw HeadlessRenderError.invalidLayout(
+                            "a new document did not reset vertical scroll"
                         )
                     }
                     let captureHeight = min(CGFloat(truncating: documentHeight), 12_000)
@@ -405,6 +462,7 @@ private enum HeadlessProcess {
         title: String,
         outputURL: URL,
         appearance: String,
+        verifyScroll: Bool,
         html: String,
         documentDirectory: URL,
         viewerDirectory: URL
@@ -418,6 +476,7 @@ private enum HeadlessProcess {
             title: title,
             outputURL: outputURL,
             appearance: appearance,
+            verifyScroll: verifyScroll,
             documentDirectory: documentDirectory,
             viewerDirectory: viewerDirectory
         )
@@ -437,6 +496,7 @@ do {
             title: inputs.markdownURL.lastPathComponent,
             outputURL: inputs.outputURL,
             appearance: inputs.appearance,
+            verifyScroll: inputs.verifyScroll,
             html: html,
             documentDirectory: inputs.markdownURL.deletingLastPathComponent(),
             viewerDirectory: inputs.viewerDirectory

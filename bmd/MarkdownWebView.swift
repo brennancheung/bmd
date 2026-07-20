@@ -8,6 +8,7 @@ struct MarkdownWebView: NSViewRepresentable {
 
     var markdown: String
     var title: String
+    var documentIdentifier: String?
     var baseDirectory: URL?
     var renderToken: UInt64
     var zoomScale: Double
@@ -38,6 +39,7 @@ struct MarkdownWebView: NSViewRepresentable {
         let coordinator = context.coordinator
         coordinator.pendingMarkdown = markdown
         coordinator.pendingTitle = title
+        coordinator.pendingDocumentIdentifier = documentIdentifier
         coordinator.pendingToken = renderToken
         coordinator.pendingAppearance = colorScheme == .dark ? "dark" : "light"
         coordinator.pendingProseWidth = proseWidth
@@ -70,11 +72,13 @@ struct MarkdownWebView: NSViewRepresentable {
 
         var pendingMarkdown: String = ""
         var pendingTitle: String = "bmd"
+        var pendingDocumentIdentifier: String?
         var pendingToken: UInt64 = 0
         var pendingAppearance: String = "light"
         var pendingProseWidth: Double = AppPreferences.Defaults.proseWidth
         var pendingTableWidth: Double = AppPreferences.Defaults.tableWidth
         private var renderedToken: UInt64?
+        private var renderedDocumentIdentifier: String?
         private var renderedAppearance: String?
         private var renderedProseWidth: Double?
         private var renderedTableWidth: Double?
@@ -107,12 +111,16 @@ struct MarkdownWebView: NSViewRepresentable {
         func flushRenderIfPossible() {
             guard viewerReady, let webView else { return }
             guard renderedToken != pendingToken
+                    || renderedDocumentIdentifier != pendingDocumentIdentifier
                     || renderedAppearance != pendingAppearance
                     || renderedProseWidth != pendingProseWidth
                     || renderedTableWidth != pendingTableWidth else {
                 return
             }
+            let preserveScroll = renderedDocumentIdentifier != nil
+                && renderedDocumentIdentifier == pendingDocumentIdentifier
             renderedToken = pendingToken
+            renderedDocumentIdentifier = pendingDocumentIdentifier
             renderedAppearance = pendingAppearance
             renderedProseWidth = pendingProseWidth
             renderedTableWidth = pendingTableWidth
@@ -126,7 +134,8 @@ struct MarkdownWebView: NSViewRepresentable {
                   title,
                   appearance,
                   proseWidth,
-                  tableWidth
+                  tableWidth,
+                  preserveScroll
                 );
                 """
             let arguments: [String: Any] = [
@@ -135,6 +144,7 @@ struct MarkdownWebView: NSViewRepresentable {
                 "appearance": pendingAppearance,
                 "proseWidth": pendingProseWidth,
                 "tableWidth": pendingTableWidth,
+                "preserveScroll": preserveScroll,
             ]
             Task { @MainActor [weak self, weak webView] in
                 guard let webView else { return }
@@ -162,6 +172,7 @@ struct MarkdownWebView: NSViewRepresentable {
             let index = viewerDir.appendingPathComponent("index.html")
             viewerReady = false
             renderedToken = nil
+            renderedDocumentIdentifier = nil
             renderedAppearance = nil
             renderedProseWidth = nil
             renderedTableWidth = nil

@@ -119,6 +119,41 @@
     document.documentElement.style.setProperty("--max-table", safeTableWidth + "px");
   }
 
+  function captureScrollState(content) {
+    return {
+      windowX: window.scrollX,
+      windowY: window.scrollY,
+      tableOffsets: Array.from(content.querySelectorAll(".table-wrap")).map(
+        function (tableWrap) {
+          return tableWrap.scrollLeft;
+        }
+      ),
+    };
+  }
+
+  function nextAnimationFrame() {
+    return new Promise(function (resolve) {
+      var finished = false;
+      var timeout = window.setTimeout(finish, 50);
+      function finish() {
+        if (finished) return;
+        finished = true;
+        window.clearTimeout(timeout);
+        resolve();
+      }
+      window.requestAnimationFrame(finish);
+    });
+  }
+
+  async function restoreScrollState(content, state) {
+    await nextAnimationFrame();
+    await nextAnimationFrame();
+    window.scrollTo(state.windowX, state.windowY);
+    content.querySelectorAll(".table-wrap").forEach(function (tableWrap, index) {
+      tableWrap.scrollLeft = state.tableOffsets[index] || 0;
+    });
+  }
+
   /**
    * Called from Swift via callAsyncJavaScript.
    * @param {string} markdownSource
@@ -126,6 +161,7 @@
    * @param {string} [appearance]
    * @param {number} [proseWidth]
    * @param {number} [tableWidth]
+   * @param {boolean} [preserveScroll]
    * @returns {Promise<object>}
    */
   window.bmdRender = async function bmdRender(
@@ -133,7 +169,8 @@
     title,
     appearance,
     proseWidth,
-    tableWidth
+    tableWidth,
+    preserveScroll
   ) {
     configureMarked();
     setAppearance(appearance);
@@ -142,6 +179,7 @@
     var empty = document.getElementById("empty");
     var content = document.getElementById("content");
     if (!content) throw new Error("Viewer content element is missing");
+    var scrollState = preserveScroll ? captureScrollState(content) : null;
 
     var src = typeof markdownSource === "string" ? markdownSource : "";
     if (!src) {
@@ -171,6 +209,12 @@
       var diagrams = extractMermaidBlocks(content);
       await renderDiagrams(diagrams, appearance);
 
+      if (scrollState) {
+        await restoreScrollState(content, scrollState);
+      } else {
+        window.scrollTo(0, 0);
+      }
+
       var result = {
         codeBlocks: content.querySelectorAll("pre code.hljs").length,
         diagramErrors: content.querySelectorAll(".diagram-error").length,
@@ -179,7 +223,6 @@
         inlineSVG: content.querySelectorAll(":scope > svg").length,
         math: content.querySelectorAll(".katex").length,
       };
-      window.scrollTo(0, 0);
       return result;
     } catch (error) {
       content.innerHTML = "";
@@ -192,7 +235,7 @@
   };
 
   window.bmdClear = function bmdClear() {
-    return window.bmdRender("", "", "light", 820, 1200);
+    return window.bmdRender("", "", "light", 820, 1200, false);
   };
 
   document.addEventListener("DOMContentLoaded", configureMarked);
