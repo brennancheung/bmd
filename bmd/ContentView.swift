@@ -139,6 +139,9 @@ struct SidebarView: View {
                         appState.presentAddProjectPanel()
                     } label: {
                         Image(systemName: "plus")
+                            .font(.system(size: 15, weight: .semibold))
+                            .frame(width: 26, height: 26)
+                            .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
                     .help("Add Project")
@@ -146,6 +149,8 @@ struct SidebarView: View {
             }
         }
         .listStyle(.sidebar)
+        .contentMargins(.top, 8, for: .scrollContent)
+        .contentMargins(.trailing, 8, for: .scrollContent)
         .safeAreaInset(edge: .bottom) {
             HStack {
                 Button {
@@ -169,7 +174,12 @@ struct SidebarView: View {
 
     private func sectionHeader(_ title: String) -> some View {
         Text(title)
-            .font(.headline.weight(.semibold))
+            .font(
+                .system(
+                    size: NSFont.systemFontSize * preferences.sidebarSectionHeaderScale,
+                    weight: .semibold
+                )
+            )
             .foregroundStyle(.secondary)
             .textCase(nil)
     }

@@ -49,6 +49,7 @@ final class AppPreferences: ObservableObject {
         static let zoomPercent = 125.0
         static let proseWidth = 820.0
         static let tableWidth = 1200.0
+        static let sidebarSectionHeaderScalePercent = 100.0
         static let watchedFileLimit = 5
         static let recentFileLimit = 10
         static let ignoredDirectoryNamesText = "node_modules"
@@ -58,6 +59,7 @@ final class AppPreferences: ObservableObject {
         static let zoomPercent = 75.0...200.0
         static let proseWidth = 640.0...1040.0
         static let tableWidth = 820.0...1600.0
+        static let sidebarSectionHeaderScalePercent = 75.0...175.0
         static let watchedFileLimit = 1...20
         static let recentFileLimit = 1...50
 
@@ -73,6 +75,8 @@ final class AppPreferences: ObservableObject {
         static let zoomPercent = "bmd.preferences.zoomPercent"
         static let proseWidth = "bmd.preferences.proseWidth"
         static let tableWidth = "bmd.preferences.tableWidth"
+        static let sidebarSectionHeaderScalePercent =
+            "bmd.preferences.sidebarSectionHeaderScalePercent"
         static let watchedFileLimit = "bmd.preferences.watchedFileLimit"
         static let recentFileLimit = "bmd.preferences.recentFileLimit"
         static let ignoredDirectoryNamesText = "bmd.preferences.ignoredDirectoryNames"
@@ -102,6 +106,15 @@ final class AppPreferences: ObservableObject {
         didSet { store.set(tableWidth, forKey: Key.tableWidth) }
     }
 
+    @Published var sidebarSectionHeaderScalePercent: Double {
+        didSet {
+            store.set(
+                sidebarSectionHeaderScalePercent,
+                forKey: Key.sidebarSectionHeaderScalePercent
+            )
+        }
+    }
+
     @Published var watchedFileLimit: Int {
         didSet { store.set(watchedFileLimit, forKey: Key.watchedFileLimit) }
     }
@@ -115,6 +128,7 @@ final class AppPreferences: ObservableObject {
     }
 
     var zoomScale: Double { zoomPercent / 100 }
+    var sidebarSectionHeaderScale: Double { sidebarSectionHeaderScalePercent / 100 }
 
     var ignoredDirectoryNames: Set<String> {
         Set(
@@ -158,6 +172,12 @@ final class AppPreferences: ObservableObject {
             fallback: Defaults.tableWidth,
             range: Limits.tableWidth
         )
+        sidebarSectionHeaderScalePercent = Self.number(
+            in: store,
+            forKey: Key.sidebarSectionHeaderScalePercent,
+            fallback: Defaults.sidebarSectionHeaderScalePercent,
+            range: Limits.sidebarSectionHeaderScalePercent
+        )
         watchedFileLimit = Self.integer(
             in: store,
             forKey: Key.watchedFileLimit,
@@ -195,6 +215,7 @@ final class AppPreferences: ObservableObject {
         zoomPercent = Defaults.zoomPercent
         proseWidth = Defaults.proseWidth
         tableWidth = Defaults.tableWidth
+        sidebarSectionHeaderScalePercent = Defaults.sidebarSectionHeaderScalePercent
         watchedFileLimit = Defaults.watchedFileLimit
         recentFileLimit = Defaults.recentFileLimit
         ignoredDirectoryNamesText = Defaults.ignoredDirectoryNamesText

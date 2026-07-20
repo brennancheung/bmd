@@ -54,6 +54,13 @@ struct SettingsView: View {
             }
 
             Section("Sidebar & Watching") {
+                preferenceSlider(
+                    title: "Section label size",
+                    value: $preferences.sidebarSectionHeaderScalePercent,
+                    range: AppPreferences.Limits.sidebarSectionHeaderScalePercent,
+                    step: 5,
+                    suffix: "%"
+                )
                 countStepper(
                     title: "Watched files",
                     value: $preferences.watchedFileLimit,

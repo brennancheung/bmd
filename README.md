@@ -55,8 +55,8 @@ cycle add friction.
 - **System appearance.** Light and dark themes follow macOS automatically, with
   manual overrides in Settings.
 - **Reader controls.** Command-plus, Command-minus, and Command-zero control
-  zoom. Reading width, table width, sidebar counts, and watch ignores are
-  configurable.
+  zoom. Reading width, table width, sidebar label size, sidebar counts, and
+  watch ignores are configurable.
 
 ## Sidebar model
 

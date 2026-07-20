@@ -8,8 +8,6 @@ fi
 
 source_app="${1%/}"
 destination_app="${2:-/Applications/bmd.app}"
-staging_app="${destination_app}.installing"
-previous_app="${destination_app}.previous"
 
 if [[ ! -d "${source_app}" ]]; then
   echo "bmd install: build product not found: ${source_app}" >&2
@@ -21,15 +19,31 @@ if [[ "$(basename "${source_app}")" != "bmd.app" || "$(basename "${destination_a
   exit 64
 fi
 
-mkdir -p "$(dirname "${destination_app}")"
-rm -rf "${staging_app}" "${previous_app}"
+destination_dir="$(dirname "${destination_app}")"
+mkdir -p "${destination_dir}"
+install_directory="$(mktemp -d "${destination_dir}/.bmd-install.XXXXXX")"
+staging_app="${install_directory}/bmd.app"
+previous_app="${install_directory}/previous.app"
+
+cleanup() {
+  rm -rf "${install_directory}"
+}
+trap cleanup EXIT
+
 /usr/bin/ditto "${source_app}" "${staging_app}"
 /usr/bin/codesign --verify --deep --strict "${staging_app}"
 
 if [[ -e "${destination_app}" ]]; then
   mv "${destination_app}" "${previous_app}"
 fi
-mv "${staging_app}" "${destination_app}"
+
+if ! mv "${staging_app}" "${destination_app}"; then
+  if [[ -e "${previous_app}" ]]; then
+    mv "${previous_app}" "${destination_app}"
+  fi
+  exit 1
+fi
+
 rm -rf "${previous_app}"
 
 launch_services="/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister"

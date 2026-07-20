@@ -17,6 +17,7 @@ enum AppPreferencesTests {
             store.set("not-a-preset", forKey: "bmd.preferences.windowWidthPreset")
             store.set("not-an-appearance", forKey: "bmd.preferences.appearance")
             store.set(10, forKey: "bmd.preferences.zoomPercent")
+            store.set(500, forKey: "bmd.preferences.sidebarSectionHeaderScalePercent")
             store.set(99, forKey: "bmd.preferences.watchedFileLimit")
             store.set(0, forKey: "bmd.preferences.recentFileLimit")
             store.set("node_modules, Generated\nCACHE", forKey: "bmd.preferences.ignoredDirectoryNames")
@@ -34,6 +35,11 @@ enum AppPreferencesTests {
                 preferences.zoomPercent == AppPreferences.Limits.zoomPercent.lowerBound,
                 "persisted zoom should be clamped"
             )
+            expect(
+                preferences.sidebarSectionHeaderScalePercent
+                    == AppPreferences.Limits.sidebarSectionHeaderScalePercent.upperBound,
+                "persisted section label scaling should be clamped"
+            )
             expect(preferences.watchedFileLimit == 20, "watched count should be clamped")
             expect(preferences.recentFileLimit == 1, "recent count should be clamped")
             expect(
@@ -50,6 +56,7 @@ enum AppPreferencesTests {
 
             preferences.windowWidthPreset = .extraWide
             preferences.appearance = .dark
+            preferences.sidebarSectionHeaderScalePercent = 135
             expect(
                 store.string(forKey: "bmd.preferences.windowWidthPreset") == "extraWide",
                 "the semantic window width should persist"
@@ -58,6 +65,10 @@ enum AppPreferencesTests {
                 store.string(forKey: "bmd.preferences.appearance") == "dark",
                 "appearance should persist"
             )
+            expect(
+                store.double(forKey: "bmd.preferences.sidebarSectionHeaderScalePercent") == 135,
+                "section label scaling should persist"
+            )
 
             preferences.resetAll()
             expect(preferences.windowWidthPreset == .wide, "reset should restore Wide")
@@ -65,6 +76,10 @@ enum AppPreferencesTests {
             expect(
                 preferences.zoomPercent == AppPreferences.Defaults.zoomPercent,
                 "reset should restore the 125% default zoom"
+            )
+            expect(
+                preferences.sidebarSectionHeaderScalePercent == 100,
+                "reset should restore the default section label scaling"
             )
             expect(preferences.watchedFileLimit == 5, "reset should show five watched files")
             expect(preferences.recentFileLimit == 10, "reset should show ten recent files")
