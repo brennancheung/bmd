@@ -66,11 +66,6 @@ struct SettingsView: View {
                     value: $preferences.updateFileLimit,
                     range: AppPreferences.Limits.updateFileLimit
                 )
-                countStepper(
-                    title: "Open documents",
-                    value: $preferences.openFileLimit,
-                    range: AppPreferences.Limits.openFileLimit
-                )
                 LabeledContent("Ignored folders") {
                     TextField(
                         "node_modules, generated",

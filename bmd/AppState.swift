@@ -21,7 +21,6 @@ final class AppState: ObservableObject {
     private let folderWatcher: MarkdownFolderWatcher
     private let currentFileWatcher: CurrentMarkdownFileWatcher
     private var ignoredDirectoryNames = MarkdownFolderDiscovery.defaultIgnoredDirectoryNames
-    private var openDocumentLimit = AppPreferences.Defaults.openFileLimit
 
     private enum HistoryBehavior: Equatable {
         case record
@@ -135,8 +134,7 @@ final class AppState: ObservableObject {
         openDocuments = DocumentNavigation.rememberOpen(
             resolved,
             in: openDocuments,
-            at: openedAt,
-            maximumCount: openDocumentLimit
+            at: openedAt
         )
         store.saveOpenDocuments(openDocuments)
         markUpdateRead(path: resolved.path, at: openedAt)
@@ -203,11 +201,15 @@ final class AppState: ObservableObject {
     }
 
     func closeOpenDocument(_ item: OpenDocumentItem) {
+        let replacement = DocumentNavigation.replacementAfterClosing(
+            path: item.path,
+            in: openDocuments
+        )
         openDocuments.removeAll { $0.path == item.path }
         store.saveOpenDocuments(openDocuments)
 
         guard currentFile?.path == item.path else { return }
-        if let replacement = openDocuments.last {
+        if let replacement {
             openFile(replacement.url, historyBehavior: .record)
         } else {
             currentFile = nil
@@ -238,6 +240,24 @@ final class AppState: ObservableObject {
             in: openDocuments
         )
         store.saveOpenDocuments(openDocuments)
+    }
+
+    func openDocument(atShortcutPosition position: Int) {
+        guard let item = DocumentNavigation.document(
+            atShortcutPosition: position,
+            in: openDocuments
+        ) else { return }
+        openDocument(item)
+    }
+
+    func selectAdjacentOpenDocument(_ direction: OpenDocumentTraversalDirection) {
+        guard openDocuments.count > 1,
+              let item = DocumentNavigation.adjacentDocument(
+                to: currentFile?.path,
+                direction: direction,
+                in: openDocuments
+              ) else { return }
+        openDocument(item)
     }
 
     func projectFiles(in project: BookmarkItem) -> [BookmarkItem] {
@@ -293,21 +313,6 @@ final class AppState: ObservableObject {
         guard normalized != self.ignoredDirectoryNames else { return }
         self.ignoredDirectoryNames = normalized
         restartFolderWatcher()
-    }
-
-    func updateOpenDocumentLimit(_ limit: Int) {
-        openDocumentLimit = limit
-        guard openDocuments.count > limit else { return }
-        var reduced = openDocuments
-        while reduced.count > limit,
-              let index = reduced.indices
-                .filter({ !reduced[$0].isPinned && reduced[$0].path != currentFile?.path })
-                .min(by: { reduced[$0].lastViewedAt < reduced[$1].lastViewedAt }) {
-            reduced.remove(at: index)
-        }
-        guard reduced != openDocuments else { return }
-        openDocuments = reduced
-        store.saveOpenDocuments(openDocuments)
     }
 
     private func restartFolderWatcher() {

@@ -115,6 +115,11 @@ struct DocumentHistoryState: Codable, Equatable {
     }
 }
 
+enum OpenDocumentTraversalDirection: Equatable {
+    case previous
+    case next
+}
+
 enum DocumentCandidateSource: String, Codable, Hashable {
     case open
     case update
@@ -156,8 +161,7 @@ enum DocumentNavigation {
     static func rememberOpen(
         _ file: URL,
         in existing: [OpenDocumentItem],
-        at date: Date,
-        maximumCount: Int
+        at date: Date
     ) -> [OpenDocumentItem] {
         let normalized = file.standardizedFileURL
         var result = existing
@@ -168,15 +172,43 @@ enum DocumentNavigation {
         }
 
         result.append(OpenDocumentItem(file: normalized, at: date))
-        while result.count > maximumCount,
-              let evictionIndex = result.indices
-                .filter({
-                    !result[$0].isPinned && result[$0].path != normalized.path
-                })
-                .min(by: { result[$0].lastViewedAt < result[$1].lastViewedAt }) {
-            result.remove(at: evictionIndex)
-        }
         return result
+    }
+
+    static func document(
+        atShortcutPosition position: Int,
+        in existing: [OpenDocumentItem]
+    ) -> OpenDocumentItem? {
+        guard (1...9).contains(position) else { return nil }
+        return existing[safe: position - 1]
+    }
+
+    static func adjacentDocument(
+        to currentPath: String?,
+        direction: OpenDocumentTraversalDirection,
+        in existing: [OpenDocumentItem]
+    ) -> OpenDocumentItem? {
+        guard !existing.isEmpty else { return nil }
+        guard let currentPath,
+              let currentIndex = existing.firstIndex(where: { $0.path == currentPath }) else {
+            return direction == .next ? existing.first : existing.last
+        }
+
+        let offset = direction == .next ? 1 : -1
+        let destinationIndex = (currentIndex + offset + existing.count) % existing.count
+        return existing[destinationIndex]
+    }
+
+    static func replacementAfterClosing(
+        path: String,
+        in existing: [OpenDocumentItem]
+    ) -> OpenDocumentItem? {
+        guard let removedIndex = existing.firstIndex(where: { $0.path == path }) else {
+            return nil
+        }
+        let remaining = existing.filter { $0.path != path }
+        guard !remaining.isEmpty else { return nil }
+        return remaining[min(removedIndex, remaining.count - 1)]
     }
 
     static func togglePin(

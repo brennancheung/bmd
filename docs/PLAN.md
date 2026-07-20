@@ -43,7 +43,8 @@
 - [x] Deduplicate open documents and agent updates into one persistent representation
 - [x] Show changed Open documents with an in-place unread indicator
 - [x] Add pin, close, and explicit move controls for Open documents
-- [x] Add persistent document Back and Forward history with standard shortcuts
+- [x] Separate positional Open navigation from Back and Forward document history
+- [x] Add stable `⌘1`–`⌘9` document positions and adjacent Open shortcuts
 - [x] Restore each document's scroll position while switching during a session
 - [x] Add a searchable Quick Switcher across Open, Updates, Projects, and history
 - [x] Confine frecency ranking to the transient Quick Switcher
@@ -56,7 +57,7 @@
 - [x] Ignore `node_modules` by default and support configurable exact-name rules
 - [x] Watch projects with recursive FSEvents
 - [x] Show created and modified files in a global Updates section
-- [x] Limit Updates and the Open working set independently through Settings
+- [x] Limit Updates through Settings while keeping Open free of silent eviction
 - [x] Show only opened files under each project
 - [x] Show project-relative paths in Open and add project-row file actions
 - [x] Auto-refresh the current file after external writes and atomic replacements

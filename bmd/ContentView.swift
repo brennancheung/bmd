@@ -21,18 +21,18 @@ struct ContentView: View {
                 Button {
                     appState.goBack()
                 } label: {
-                    Label("Back", systemImage: "chevron.left")
+                    Label("Back in Document History", systemImage: "chevron.left")
                 }
                 .disabled(!appState.canGoBack)
-                .help("Previous Document (⌘[)")
+                .help("Back in Document History (⌘[)")
 
                 Button {
                     appState.goForward()
                 } label: {
-                    Label("Forward", systemImage: "chevron.right")
+                    Label("Forward in Document History", systemImage: "chevron.right")
                 }
                 .disabled(!appState.canGoForward)
-                .help("Next Document (⌘])")
+                .help("Forward in Document History (⌘])")
 
                 Button {
                     appState.showQuickSwitcher()
@@ -72,7 +72,6 @@ struct ContentView: View {
             appState.updateWatchConfiguration(
                 ignoredDirectoryNames: preferences.ignoredDirectoryNames
             )
-            appState.updateOpenDocumentLimit(preferences.openFileLimit)
         }
         .task(id: preferences.ignoredDirectoryNamesText) {
             do {
@@ -83,9 +82,6 @@ struct ContentView: View {
             appState.updateWatchConfiguration(
                 ignoredDirectoryNames: preferences.ignoredDirectoryNames
             )
-        }
-        .task(id: preferences.openFileLimit) {
-            appState.updateOpenDocumentLimit(preferences.openFileLimit)
         }
         .onDrop(of: [.fileURL], isTargeted: nil) { providers in
             handleDrop(providers)
@@ -119,6 +115,7 @@ struct ContentView: View {
 struct SidebarView: View {
     @EnvironmentObject private var appState: AppState
     @EnvironmentObject private var preferences: AppPreferences
+    @StateObject private var modifierKeys = ModifierKeyObserver()
 
     var body: some View {
         List {
@@ -143,8 +140,11 @@ struct SidebarView: View {
                     Text("No open documents")
                         .foregroundStyle(.secondary)
                 } else {
-                    ForEach(appState.openDocuments) { item in
-                        openDocumentButton(item)
+                    ForEach(
+                        Array(appState.openDocuments.enumerated()),
+                        id: \.element.id
+                    ) { index, item in
+                        openDocumentButton(item, position: index + 1)
                     }
                 }
             } header: {
@@ -201,6 +201,12 @@ struct SidebarView: View {
             .background(.bar)
         }
         .frame(minWidth: 240)
+        .onAppear {
+            modifierKeys.start()
+        }
+        .onDisappear {
+            modifierKeys.stop()
+        }
     }
 
     private func sectionHeader(_ title: String) -> some View {
@@ -249,13 +255,29 @@ struct SidebarView: View {
         }
     }
 
-    private func openDocumentButton(_ item: OpenDocumentItem) -> some View {
+    private func openDocumentButton(
+        _ item: OpenDocumentItem,
+        position: Int
+    ) -> some View {
         let isCurrent = appState.currentFile?.path == item.path
         let hasUpdate = appState.unreadUpdate(for: item.path) != nil
         return Button {
             appState.openDocument(item)
         } label: {
             HStack(spacing: 7) {
+                Text(shortcutLabel(for: position))
+                    .font(.caption.monospacedDigit())
+                    .fontWeight(modifierKeys.isCommandPressed ? .semibold : .regular)
+                    .foregroundStyle(
+                        modifierKeys.isCommandPressed
+                            ? Color.primary.opacity(0.72)
+                            : Color.secondary.opacity(0.65)
+                    )
+                    .frame(width: 22, alignment: .trailing)
+                    .accessibilityLabel(
+                        "Open position \(position), shortcut Command \(position)"
+                    )
+                    .accessibilityHidden(position > 9)
                 Image(systemName: isCurrent ? "doc.text.fill" : "doc.text")
                     .foregroundStyle(isCurrent ? Color.accentColor : Color.secondary)
                 VStack(alignment: .leading, spacing: 1) {
@@ -292,7 +314,11 @@ struct SidebarView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .help(item.path)
+        .help(
+            position <= 9
+                ? "\(item.path)\nOpen with ⌘\(position)"
+                : item.path
+        )
         .contextMenu {
             Button(item.isPinned ? "Unpin" : "Pin") {
                 appState.togglePin(item)
@@ -320,6 +346,11 @@ struct SidebarView: View {
                 appState.closeOpenDocument(item)
             }
         }
+    }
+
+    private func shortcutLabel(for position: Int) -> String {
+        guard position <= 9 else { return "" }
+        return modifierKeys.isCommandPressed ? "⌘\(position)" : "\(position)"
     }
 }
 

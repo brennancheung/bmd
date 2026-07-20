@@ -23,6 +23,7 @@
 		B4D000000000000000000018 /* SidebarFileState.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4D000000000000000000019 /* SidebarFileState.swift */; };
 		B4D00000000000000000001A /* MenuBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4D00000000000000000001B /* MenuBarView.swift */; };
 		B4D00000000000000000001C /* DocumentNavigation.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4D00000000000000000001D /* DocumentNavigation.swift */; };
+		B4D00000000000000000001E /* ModifierKeyObserver.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4D00000000000000000001F /* ModifierKeyObserver.swift */; };
 		35B57B161C744602B42DEBB8 /* viewer in Resources */ = {isa = PBXBuildFile; fileRef = E22FBBDE87374F42A3C940FB /* viewer */; };
 /* End PBXBuildFile section */
 
@@ -53,6 +54,7 @@
 		B4D000000000000000000019 /* SidebarFileState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidebarFileState.swift; sourceTree = "<group>"; };
 		B4D00000000000000000001B /* MenuBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarView.swift; sourceTree = "<group>"; };
 		B4D00000000000000000001D /* DocumentNavigation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentNavigation.swift; sourceTree = "<group>"; };
+		B4D00000000000000000001F /* ModifierKeyObserver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModifierKeyObserver.swift; sourceTree = "<group>"; };
 		A10000000000000000000006 /* bmd.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = bmd.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		16457A4A05BD453DA86E0833 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		CC0FF0A58B5E4455B8F33BC5 /* bmd.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = bmd.entitlements; sourceTree = "<group>"; };
@@ -105,6 +107,7 @@
 				B4D000000000000000000019 /* SidebarFileState.swift */,
 				B4D00000000000000000001B /* MenuBarView.swift */,
 				B4D00000000000000000001D /* DocumentNavigation.swift */,
+				B4D00000000000000000001F /* ModifierKeyObserver.swift */,
 				B4D000000000000000000017 /* Assets.xcassets */,
 				16457A4A05BD453DA86E0833 /* Info.plist */,
 				CC0FF0A58B5E4455B8F33BC5 /* bmd.entitlements */,
@@ -228,6 +231,7 @@
 				B4D000000000000000000018 /* SidebarFileState.swift in Sources */,
 				B4D00000000000000000001A /* MenuBarView.swift in Sources */,
 				B4D00000000000000000001C /* DocumentNavigation.swift in Sources */,
+				B4D00000000000000000001E /* ModifierKeyObserver.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

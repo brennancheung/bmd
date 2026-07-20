@@ -51,9 +51,7 @@ struct MenuBarView: View {
         }
 
         Section("Open") {
-            let openDocuments = appState.openDocuments.prefix(
-                min(fileLimit, preferences.openFileLimit)
-            )
+            let openDocuments = appState.openDocuments.prefix(fileLimit)
             if openDocuments.isEmpty {
                 Text("No open documents")
             } else {
@@ -77,10 +75,26 @@ struct MenuBarView: View {
         Divider()
 
         Button {
+            appState.selectAdjacentOpenDocument(.previous)
+            showMainWindow()
+        } label: {
+            Label("Previous Open Document", systemImage: "chevron.up")
+        }
+        .disabled(appState.openDocuments.count < 2)
+
+        Button {
+            appState.selectAdjacentOpenDocument(.next)
+            showMainWindow()
+        } label: {
+            Label("Next Open Document", systemImage: "chevron.down")
+        }
+        .disabled(appState.openDocuments.count < 2)
+
+        Button {
             appState.goBack()
             showMainWindow()
         } label: {
-            Label("Back", systemImage: "chevron.left")
+            Label("Back in Document History", systemImage: "chevron.left")
         }
         .disabled(!appState.canGoBack)
 
@@ -88,7 +102,7 @@ struct MenuBarView: View {
             appState.goForward()
             showMainWindow()
         } label: {
-            Label("Forward", systemImage: "chevron.right")
+            Label("Forward in Document History", systemImage: "chevron.right")
         }
         .disabled(!appState.canGoForward)
 

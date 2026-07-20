@@ -101,6 +101,7 @@ We studied it only to know how QL works and what to *avoid*. bmd is greenfield a
 - [x] Sidebar Updates + Open + Projects hierarchy
 - [x] WKWebView + marked  
 - [x] Open file, render, and remember a stable working set
+- [x] Number the first nine Open positions and support adjacent keyboard traversal
 - [x] Debug build succeeds (`xcodebuild -scheme bmd`)  
 - [ ] Optional: install `bmd` on PATH (`ln -s …/scripts/bmd /usr/local/bin/bmd`)  
 - [x] Human smoke-test: open documents, switch, navigate Back, and restore scroll

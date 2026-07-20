@@ -20,7 +20,6 @@ enum AppPreferencesTests {
             store.set(10, forKey: "bmd.preferences.zoomPercent")
             store.set(500, forKey: "bmd.preferences.sidebarSectionHeaderScalePercent")
             store.set(99, forKey: "bmd.preferences.watchedFileLimit")
-            store.set(0, forKey: "bmd.preferences.recentFileLimit")
             store.set("node_modules, Generated\nCACHE", forKey: "bmd.preferences.ignoredDirectoryNames")
 
             let preferences = AppPreferences(store: store)
@@ -42,7 +41,6 @@ enum AppPreferencesTests {
                 "persisted section label scaling should be clamped"
             )
             expect(preferences.updateFileLimit == 20, "update count should be clamped")
-            expect(preferences.openFileLimit == 1, "open count should be clamped")
             expect(
                 preferences.ignoredDirectoryNames == ["node_modules", "generated", "cache"],
                 "ignore rules should parse comma and newline separated names case-insensitively"
@@ -83,7 +81,6 @@ enum AppPreferencesTests {
                 "reset should restore the default section label scaling"
             )
             expect(preferences.updateFileLimit == 5, "reset should show five updates")
-            expect(preferences.openFileLimit == 10, "reset should retain ten open documents")
             expect(
                 preferences.ignoredDirectoryNames == ["node_modules"],
                 "reset should ignore node_modules by default"

@@ -43,9 +43,10 @@ updated, it appears in **Updates**—no trip through Finder required.
 ### Switch without searching
 
 Keep active documents in a stable **Open** list where clicking never moves the
-row you just used. Move Back and Forward through reading history, or search
-Open, Updates, Projects, and history from the Quick Switcher. The menu-bar app
-keeps the same controls close even when the main window is closed.
+row you just used. Jump directly to the first nine positions with `⌘1` through
+`⌘9`, move through adjacent Open documents with `⌃Tab`, or move Back and Forward
+through reading history. The Quick Switcher searches Open, Updates, Projects,
+and history when you do not know a document's position.
 
 ### Follow work as it changes
 
@@ -127,15 +128,17 @@ project for location-oriented navigation.
 ## How the sidebar works
 
 - **Open** is a stable working set. Selecting a document changes its highlight,
-  not its row position. Documents can be pinned, moved explicitly, or closed.
+  not its row position. New documents append to the bottom, and no document is
+  removed automatically. Documents can be pinned, moved explicitly, or closed.
 - **Updates** shows new agent-created or agent-modified Markdown. A changed Open
   document receives an update dot in place instead of appearing twice.
 - **Projects** remembers the documents you opened inside each project without
   turning the sidebar into another enormous file tree.
 
-Use `⌘[` and `⌘]` to move Back and Forward through document history. Use `⇧⌘O`
-to open the Quick Switcher and search across Open, Updates, Projects, and
-history. bmd remembers each document's reading position while you switch.
+Use `⌘1` through `⌘9` for direct positional access. Use `⌃Tab` and `⌃⇧Tab` to
+move through adjacent Open documents. `⌘[` and `⌘]` move Back and Forward
+through document history. Use `⇧⌘O` to search across Open, Updates, Projects,
+and history. bmd remembers each document's reading position while you switch.
 
 Project folders are watched recursively, but `node_modules`, hidden folders,
 and application packages are skipped. Additional folder names can be ignored

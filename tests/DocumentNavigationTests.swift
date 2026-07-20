@@ -4,48 +4,38 @@ import Foundation
 @main
 enum DocumentNavigationTests {
     static func main() {
-        testStableOpenOrderingAndEviction()
+        testStableOpenOrdering()
         testPinningAndManualMovement()
+        testPositionalAndAdjacentNavigation()
+        testCloseReplacement()
         testBackForwardHistory()
         testQuickSwitcherDeduplicationAndSearch()
         testLegacyRecentsMigration()
         print("DocumentNavigationTests passed")
     }
 
-    private static func testStableOpenOrderingAndEviction() {
+    private static func testStableOpenOrdering() {
         let first = URL(fileURLWithPath: "/tmp/project/first.md")
         let second = URL(fileURLWithPath: "/tmp/project/second.md")
         let third = URL(fileURLWithPath: "/tmp/project/third.md")
         var open: [OpenDocumentItem] = []
         open = DocumentNavigation.rememberOpen(
-            first, in: open, at: date(1), maximumCount: 2
+            first, in: open, at: date(1)
         )
         open = DocumentNavigation.rememberOpen(
-            second, in: open, at: date(2), maximumCount: 2
+            second, in: open, at: date(2)
         )
         open = DocumentNavigation.rememberOpen(
-            first, in: open, at: date(3), maximumCount: 2
+            first, in: open, at: date(3)
         )
         expect(open.map(\.path) == [first.path, second.path],
                "reopening a document must not move its row")
 
         open = DocumentNavigation.rememberOpen(
-            third, in: open, at: date(4), maximumCount: 2
+            third, in: open, at: date(4)
         )
-        expect(open.map(\.path) == [first.path, third.path],
-               "the least recently viewed unpinned document should be evicted")
-
-        let pinned = open.map { item in
-            var item = item
-            item.isPinned = true
-            return item
-        }
-        let fourth = URL(fileURLWithPath: "/tmp/project/fourth.md")
-        let overflow = DocumentNavigation.rememberOpen(
-            fourth, in: pinned, at: date(5), maximumCount: 2
-        )
-        expect(overflow.contains(where: { $0.path == fourth.path }),
-               "the current document must remain in Open when every prior row is pinned")
+        expect(open.map(\.path) == [first.path, second.path, third.path],
+               "new documents should append without silently evicting stable rows")
     }
 
     private static func testPinningAndManualMovement() {
@@ -60,6 +50,70 @@ enum DocumentNavigationTests {
         open = DocumentNavigation.move(path: second.path, by: -1, in: open)
         expect(open.map(\.path) == [second.path, first.path],
                "manual movement should be explicit and deterministic")
+    }
+
+    private static func testPositionalAndAdjacentNavigation() {
+        let open = (1...10).map { index in
+            OpenDocumentItem(
+                file: URL(fileURLWithPath: "/tmp/\(index).md"),
+                at: date(TimeInterval(index))
+            )
+        }
+
+        expect(
+            DocumentNavigation.document(atShortcutPosition: 1, in: open)?.path
+                == "/tmp/1.md",
+            "Command-1 should select the first stable Open position"
+        )
+        expect(
+            DocumentNavigation.document(atShortcutPosition: 9, in: open)?.path
+                == "/tmp/9.md",
+            "Command-9 should select the ninth stable Open position"
+        )
+        expect(
+            DocumentNavigation.document(atShortcutPosition: 10, in: open) == nil,
+            "number shortcuts should be limited to positions one through nine"
+        )
+        expect(
+            DocumentNavigation.adjacentDocument(
+                to: "/tmp/10.md",
+                direction: .next,
+                in: open
+            )?.path == "/tmp/1.md",
+            "Next Open should wrap from the last row to the first"
+        )
+        expect(
+            DocumentNavigation.adjacentDocument(
+                to: "/tmp/1.md",
+                direction: .previous,
+                in: open
+            )?.path == "/tmp/10.md",
+            "Previous Open should wrap from the first row to the last"
+        )
+    }
+
+    private static func testCloseReplacement() {
+        let open = (1...3).map { index in
+            OpenDocumentItem(
+                file: URL(fileURLWithPath: "/tmp/\(index).md"),
+                at: date(TimeInterval(index))
+            )
+        }
+
+        expect(
+            DocumentNavigation.replacementAfterClosing(
+                path: "/tmp/2.md",
+                in: open
+            )?.path == "/tmp/3.md",
+            "closing a middle row should select the next row"
+        )
+        expect(
+            DocumentNavigation.replacementAfterClosing(
+                path: "/tmp/3.md",
+                in: open
+            )?.path == "/tmp/2.md",
+            "closing the last row should select the previous row"
+        )
     }
 
     private static func testBackForwardHistory() {

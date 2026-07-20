@@ -410,9 +410,8 @@ it removes an interruption from the workflow bmd is designed to protect.
 ### Open-document lifecycle
 
 - New documents append to the bottom so existing targets never move.
-- Open is capped by a configurable count, with ten documents as the default.
-- When the cap is reached, bmd removes the least-recently-viewed unpinned
-  document. Pinned documents are never evicted automatically.
+- Open has no automatic maximum. Documents remain until the user closes them, so
+  adding a document never silently shifts a learned position.
 - Open persists across launches.
 - Pinning, explicit Move Up and Move Down actions, and Close are available from
   each document's context menu.
@@ -433,7 +432,10 @@ it removes an interruption from the workflow bmd is designed to protect.
 - History persists across launches.
 - Returning to a document restores its last scroll position during the current
   app session.
-- `⇧⌘O` opens Quick Switcher; `⌘[` and `⌘]` navigate Back and Forward.
+- `⌘1` through `⌘9` open stable positions directly.
+- `⌃Tab` and `⌃⇧Tab` traverse adjacent Open positions.
+- `⇧⌘O` opens Quick Switcher; `⌘[` and `⌘]` navigate Back and Forward in
+  document history.
 
 ### Migration
 

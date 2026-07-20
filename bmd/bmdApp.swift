@@ -6,6 +6,9 @@ struct bmdApp: App {
     @StateObject private var appState = AppState()
     @StateObject private var preferences = AppPreferences()
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
+    private let openDocumentShortcutKeys: [KeyEquivalent] = [
+        "1", "2", "3", "4", "5", "6", "7", "8", "9",
+    ]
 
     var body: some Scene {
         Window("bmd", id: "main") {
@@ -32,17 +35,46 @@ struct bmdApp: App {
             }
 
             CommandMenu("Navigate") {
-                Button("Back") {
+                Button("Back in Document History") {
                     appState.goBack()
                 }
                 .keyboardShortcut("[", modifiers: .command)
                 .disabled(!appState.canGoBack)
 
-                Button("Forward") {
+                Button("Forward in Document History") {
                     appState.goForward()
                 }
                 .keyboardShortcut("]", modifiers: .command)
                 .disabled(!appState.canGoForward)
+
+                Divider()
+
+                Button("Previous Open Document") {
+                    appState.selectAdjacentOpenDocument(.previous)
+                }
+                .keyboardShortcut(.tab, modifiers: [.control, .shift])
+                .disabled(appState.openDocuments.count < 2)
+
+                Button("Next Open Document") {
+                    appState.selectAdjacentOpenDocument(.next)
+                }
+                .keyboardShortcut(.tab, modifiers: .control)
+                .disabled(appState.openDocuments.count < 2)
+
+                Menu("Open Document") {
+                    ForEach(
+                        Array(appState.openDocuments.prefix(9).enumerated()),
+                        id: \.element.id
+                    ) { index, item in
+                        Button(item.displayName) {
+                            appState.openDocument(atShortcutPosition: index + 1)
+                        }
+                        .keyboardShortcut(
+                            openDocumentShortcutKeys[index],
+                            modifiers: .command
+                        )
+                    }
+                }
 
                 Divider()
 
