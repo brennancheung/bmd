@@ -198,8 +198,9 @@ struct SidebarView: View {
         Button {
             appState.openRecent(item)
         } label: {
-            Label(item.displayName, systemImage: "clock")
+            Label(appState.recentDisplayPath(item), systemImage: "clock")
                 .lineLimit(1)
+                .truncationMode(.middle)
         }
         .buttonStyle(.plain)
         .help(item.path)
@@ -258,15 +259,38 @@ private struct ProjectSidebarRow: View {
             }
         } label: {
             HStack(spacing: 6) {
-                Label(project.displayName, systemImage: "folder")
-                    .lineLimit(1)
-                Spacer(minLength: 4)
+                Button {
+                    isExpanded.toggle()
+                } label: {
+                    Label(project.displayName, systemImage: "folder")
+                        .lineLimit(1)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+
                 let fileCount = appState.projectFiles(in: project).count
                 if fileCount > 0 {
                     Text("\(fileCount)")
                         .font(.caption2.monospacedDigit())
                         .foregroundStyle(.secondary)
                 }
+
+                Button {
+                    appState.presentProjectMarkdownPanel(project)
+                } label: {
+                    Image(systemName: "magnifyingglass")
+                }
+                .buttonStyle(.borderless)
+                .help("Open Markdown in \(project.displayName)")
+
+                Button {
+                    revealInFinder(project.url)
+                } label: {
+                    Image(systemName: "folder")
+                }
+                .buttonStyle(.borderless)
+                .help("Reveal \(project.displayName) in Finder")
             }
         }
         .contextMenu {

@@ -62,19 +62,29 @@ final class AppState: ObservableObject {
     }
 
     func presentOpenPanel() {
+        presentOpenPanel(startingAt: nil, restrictToMarkdown: false)
+    }
+
+    func presentProjectMarkdownPanel(_ project: BookmarkItem) {
+        presentOpenPanel(startingAt: project.url, restrictToMarkdown: true)
+    }
+
+    private func presentOpenPanel(
+        startingAt directory: URL?,
+        restrictToMarkdown: Bool
+    ) {
         let panel = NSOpenPanel()
         panel.canChooseFiles = true
         panel.canChooseDirectories = false
         panel.allowsMultipleSelection = false
-        var types: [UTType] = [.plainText, .text]
-        if let md = UTType(filenameExtension: "md") {
-            types.insert(md, at: 0)
-        }
-        if let markdown = UTType(filenameExtension: "markdown") {
-            types.insert(markdown, at: 0)
-        }
-        panel.allowedContentTypes = types
-        panel.allowsOtherFileTypes = true
+        let markdownTypes = MarkdownFolderDiscovery.supportedExtensions
+            .sorted()
+            .compactMap { UTType(filenameExtension: $0) }
+        panel.allowedContentTypes = restrictToMarkdown
+            ? markdownTypes
+            : markdownTypes + [.plainText, .text]
+        panel.allowsOtherFileTypes = !restrictToMarkdown
+        panel.directoryURL = directory?.standardizedFileURL
         panel.title = "Open Markdown"
         panel.prompt = "Open"
         if panel.runModal() == .OK, let url = panel.url {
@@ -167,6 +177,10 @@ final class AppState: ObservableObject {
 
     func projectFiles(in project: BookmarkItem) -> [BookmarkItem] {
         projectFilesByFolder[project.path] ?? []
+    }
+
+    func recentDisplayPath(_ item: BookmarkItem) -> String {
+        SidebarFileState.recentDisplayPath(for: item.url, projects: projects)
     }
 
     func watchedFiles(limit: Int) -> [WatchedActivityItem] {

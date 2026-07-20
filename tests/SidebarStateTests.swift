@@ -5,9 +5,32 @@ import Foundation
 enum SidebarStateTests {
     static func main() {
         testProjectMembership()
+        testRecentDisplayPaths()
         testOpenedProjectFiles()
         testWatchedActivity()
         print("SidebarStateTests passed")
+    }
+
+    private static func testRecentDisplayPaths() {
+        let parent = BookmarkItem.folder(URL(fileURLWithPath: "/tmp/work"))
+        let nested = BookmarkItem.folder(URL(fileURLWithPath: "/tmp/work/app"))
+        let nestedFile = URL(fileURLWithPath: "/tmp/work/app/docs/guide.md")
+        let externalFile = URL(fileURLWithPath: "/tmp/notes.md")
+
+        expect(
+            SidebarFileState.recentDisplayPath(
+                for: nestedFile,
+                projects: [parent, nested]
+            ) == "app › docs › guide.md",
+            "recent paths should use the most specific project and relative path"
+        )
+        expect(
+            SidebarFileState.recentDisplayPath(
+                for: externalFile,
+                projects: [parent, nested]
+            ) == "notes.md",
+            "recent paths outside projects should keep the filename"
+        )
     }
 
     private static func testProjectMembership() {

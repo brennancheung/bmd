@@ -74,6 +74,11 @@ opened files; recursive scanning is used for change detection, not as a Finder
 replacement. Right-click any file row to copy its complete path or reveal it in
 Finder.
 
+Recent files inside projects display their project name and project-relative
+path. Clicking a project name expands or collapses its opened files. Each
+project row also provides a Markdown-only file picker rooted at that project and
+a Reveal in Finder button.
+
 `node_modules` is ignored by default. Hidden folders and application packages
 are always skipped. Additional exact folder names can be added in Settings.
 

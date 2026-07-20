@@ -42,6 +42,7 @@
 - [x] Show created, modified, and currently open files in one global Watched section
 - [x] Limit Watched and Recents independently through Settings
 - [x] Show only opened files under each project
+- [x] Show project-relative paths in Recents and add project-row file actions
 - [x] Auto-refresh the current file after external writes and atomic replacements
 - [x] Provide Copy Path and Reveal in Finder context actions
 - [ ] Add optional glob rules and activity retention controls after real-world use

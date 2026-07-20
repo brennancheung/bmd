@@ -42,6 +42,21 @@ enum SidebarFileState {
         return filePath.hasPrefix(projectPath + "/")
     }
 
+    static func recentDisplayPath(
+        for file: URL,
+        projects: [BookmarkItem]
+    ) -> String {
+        guard let project = containingProject(for: file, projects: projects) else {
+            return file.lastPathComponent
+        }
+        let relativePath = MarkdownFolderDiscovery.relativePath(
+            for: file,
+            in: project.url
+        )
+        return ([project.displayName] + relativePath.split(separator: "/").map(String.init))
+            .joined(separator: " › ")
+    }
+
     static func mergeActivity(
         existing: [WatchedActivityItem],
         changedFiles: [WatchedMarkdownFile],

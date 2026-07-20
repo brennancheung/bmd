@@ -67,7 +67,7 @@ struct MenuBarView: View {
                         appState.openRecent(item)
                         showMainWindow()
                     } label: {
-                        Label(item.displayName, systemImage: "clock")
+                        Label(appState.recentDisplayPath(item), systemImage: "clock")
                     }
                     .help(item.path)
                 }
