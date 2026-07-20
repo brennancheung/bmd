@@ -135,16 +135,7 @@ struct SidebarView: View {
                     }
                 }
             } header: {
-                HStack {
-                    sectionHeader("Updates")
-                    Spacer()
-                    let count = appState.updates(limit: preferences.updateFileLimit).count
-                    if count > 0 {
-                        Text("\(count)")
-                            .font(.caption2.monospacedDigit())
-                            .foregroundStyle(.secondary)
-                    }
-                }
+                sectionHeader("Updates")
             }
 
             Section {
@@ -157,15 +148,7 @@ struct SidebarView: View {
                     }
                 }
             } header: {
-                HStack {
-                    sectionHeader("Open")
-                    Spacer()
-                    if !appState.openDocuments.isEmpty {
-                        Text("\(appState.openDocuments.count)")
-                            .font(.caption2.monospacedDigit())
-                            .foregroundStyle(.secondary)
-                    }
-                }
+                sectionHeader("Open")
             }
 
             Section {
@@ -389,13 +372,6 @@ private struct ProjectSidebarRow: View {
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-
-                let fileCount = appState.projectFiles(in: project).count
-                if fileCount > 0 {
-                    Text("\(fileCount)")
-                        .font(.caption2.monospacedDigit())
-                        .foregroundStyle(.secondary)
-                }
 
                 Button {
                     appState.presentProjectMarkdownPanel(project)
