@@ -40,8 +40,8 @@ enum AppPreferencesTests {
                     == AppPreferences.Limits.sidebarSectionHeaderScalePercent.upperBound,
                 "persisted section label scaling should be clamped"
             )
-            expect(preferences.watchedFileLimit == 20, "watched count should be clamped")
-            expect(preferences.recentFileLimit == 1, "recent count should be clamped")
+            expect(preferences.updateFileLimit == 20, "update count should be clamped")
+            expect(preferences.openFileLimit == 1, "open count should be clamped")
             expect(
                 preferences.ignoredDirectoryNames == ["node_modules", "generated", "cache"],
                 "ignore rules should parse comma and newline separated names case-insensitively"
@@ -81,8 +81,8 @@ enum AppPreferencesTests {
                 preferences.sidebarSectionHeaderScalePercent == 100,
                 "reset should restore the default section label scaling"
             )
-            expect(preferences.watchedFileLimit == 5, "reset should show five watched files")
-            expect(preferences.recentFileLimit == 10, "reset should show ten recent files")
+            expect(preferences.updateFileLimit == 5, "reset should show five updates")
+            expect(preferences.openFileLimit == 10, "reset should retain ten open documents")
             expect(
                 preferences.ignoredDirectoryNames == ["node_modules"],
                 "reset should ignore node_modules by default"
@@ -102,7 +102,7 @@ enum AppPreferencesTests {
                 "the previous 115% default should migrate to 125%"
             )
             expect(
-                store.integer(forKey: "bmd.preferences.defaultsVersion") == 3,
+                store.integer(forKey: "bmd.preferences.defaultsVersion") == 4,
                 "the migration version should persist"
             )
         }

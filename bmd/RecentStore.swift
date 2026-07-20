@@ -31,15 +31,15 @@ struct BookmarkItem: Identifiable, Codable, Hashable {
     }
 }
 
-/// Persistence for recents and project folders (UserDefaults path lists for v1).
+/// Persistence for open documents, legacy recents migration, and project folders.
 final class RecentStore {
     static let shared = RecentStore()
 
     private let defaults: UserDefaults
     private let recentsKey = "bmd.recents"
+    private let openDocumentsKey = "bmd.openDocuments"
     // Keep the original key so existing pinned folders migrate into Projects.
     private let projectsKey = "bmd.pins"
-    private let maxRecents = 100
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
@@ -53,31 +53,17 @@ final class RecentStore {
         decode(key: projectsKey)
     }
 
-    @discardableResult
-    func rememberRecent(_ url: URL, at date: Date = Date()) -> [BookmarkItem] {
-        var items = loadRecents()
-        let path = url.standardizedFileURL.path
-        items.removeAll { $0.path == path }
-        items.insert(BookmarkItem.file(url, at: date), at: 0)
-        if items.count > maxRecents {
-            items = Array(items.prefix(maxRecents))
+    func loadOpenDocuments() -> [OpenDocumentItem] {
+        if let items: [OpenDocumentItem] = decodeIfPresent(key: openDocumentsKey) {
+            return items.filter { FileManager.default.fileExists(atPath: $0.path) }
         }
-        save(items, key: recentsKey)
-        return items
+        let migrated = loadRecents().map(OpenDocumentItem.init(legacy:))
+        saveOpenDocuments(migrated)
+        return migrated
     }
 
-    @discardableResult
-    func removeRecent(_ item: BookmarkItem) -> [BookmarkItem] {
-        var items = loadRecents()
-        items.removeAll { $0.id == item.id }
-        save(items, key: recentsKey)
-        return items
-    }
-
-    @discardableResult
-    func clearRecents() -> [BookmarkItem] {
-        save([], key: recentsKey)
-        return []
+    func saveOpenDocuments(_ items: [OpenDocumentItem]) {
+        save(items, key: openDocumentsKey)
     }
 
     @discardableResult
@@ -108,7 +94,12 @@ final class RecentStore {
         return (try? JSONDecoder().decode([BookmarkItem].self, from: data)) ?? []
     }
 
-    private func save(_ items: [BookmarkItem], key: String) {
+    private func decodeIfPresent<Value: Decodable>(key: String) -> Value? {
+        guard let data = defaults.data(forKey: key) else { return nil }
+        return try? JSONDecoder().decode(Value.self, from: data)
+    }
+
+    private func save<Value: Encodable>(_ items: Value, key: String) {
         if let data = try? JSONEncoder().encode(items) {
             defaults.set(data, forKey: key)
         }

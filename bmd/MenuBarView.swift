@@ -31,16 +31,35 @@ struct MenuBarView: View {
 
         Divider()
 
-        Section("Watched") {
-            let watchedFiles = appState.watchedFiles(
-                limit: min(fileLimit, preferences.watchedFileLimit)
+        Section("Updates") {
+            let updates = appState.updates(
+                limit: min(fileLimit, preferences.updateFileLimit)
             )
-            if watchedFiles.isEmpty {
-                Text("No watched files")
+            if updates.isEmpty {
+                Text("No new updates")
             } else {
-                ForEach(watchedFiles) { item in
+                ForEach(updates) { item in
                     Button {
-                        appState.openWatched(item)
+                        appState.openUpdate(item)
+                        showMainWindow()
+                    } label: {
+                        Label(item.displayName, systemImage: "sparkles")
+                    }
+                    .help(item.path)
+                }
+            }
+        }
+
+        Section("Open") {
+            let openDocuments = appState.openDocuments.prefix(
+                min(fileLimit, preferences.openFileLimit)
+            )
+            if openDocuments.isEmpty {
+                Text("No open documents")
+            } else {
+                ForEach(openDocuments) { item in
+                    Button {
+                        appState.openDocument(item)
                         showMainWindow()
                     } label: {
                         Label(
@@ -55,23 +74,29 @@ struct MenuBarView: View {
             }
         }
 
-        Section("Recently Opened") {
-            let recentFiles = appState.recents.prefix(
-                min(fileLimit, preferences.recentFileLimit)
-            )
-            if recentFiles.isEmpty {
-                Text("No recent files")
-            } else {
-                ForEach(recentFiles) { item in
-                    Button {
-                        appState.openRecent(item)
-                        showMainWindow()
-                    } label: {
-                        Label(appState.recentDisplayPath(item), systemImage: "clock")
-                    }
-                    .help(item.path)
-                }
-            }
+        Divider()
+
+        Button {
+            appState.goBack()
+            showMainWindow()
+        } label: {
+            Label("Back", systemImage: "chevron.left")
+        }
+        .disabled(!appState.canGoBack)
+
+        Button {
+            appState.goForward()
+            showMainWindow()
+        } label: {
+            Label("Forward", systemImage: "chevron.right")
+        }
+        .disabled(!appState.canGoForward)
+
+        Button {
+            showMainWindow()
+            appState.showQuickSwitcher()
+        } label: {
+            Label("Switch Document…", systemImage: "doc.text.magnifyingglass")
         }
 
         Divider()

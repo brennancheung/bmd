@@ -1,6 +1,6 @@
 # Sidebar document switching — UX analysis
 
-**Status:** Proposed direction
+**Status:** Implemented
 **Scope:** Persistent sidebar, recent-document behavior, agent updates, and fast
 document switching
 **Primary recommendation:** Stable Open working set + Updates + transient Quick
@@ -405,34 +405,35 @@ it removes an interruption from the workflow bmd is designed to protect.
   practical.
 - Every keyboard accelerator has a visible menu or button equivalent.
 
-## Decisions required before implementation
+## Implemented lifecycle decisions
 
 ### Open-document lifecycle
 
-- Does opening a document add it to the top or bottom of Open?
-- Should Open be capped at five, seven, or a configurable count?
-- When the cap is reached, should bmd remove the least-recently-used unpinned
-  document or ask the user?
-- Should Open persist across launches?
-- Are pinning and manual ordering needed in the first iteration?
+- New documents append to the bottom so existing targets never move.
+- Open is capped by a configurable count, with ten documents as the default.
+- When the cap is reached, bmd removes the least-recently-viewed unpinned
+  document. Pinned documents are never evicted automatically.
+- Open persists across launches.
+- Pinning, explicit Move Up and Move Down actions, and Close are available from
+  each document's context menu.
 
 ### Update lifecycle
 
-- What counts as unread: created, modified, or both?
-- When is an update considered read: on open, after remaining visible for a
-  period, or by explicit dismissal?
-- Should read items remain until the pointer leaves the section or until the
-  next session to avoid moving targets?
-- Should multiple updates to the same document collapse into one item?
+- Created and modified Markdown files both count as updates.
+- Opening an update marks it as read.
+- A changed Open document keeps its stable row and receives an update dot.
+- Updates to the same document collapse into one latest activity item.
+- Legacy Watched activity is marked read during migration so installing the new
+  model does not produce a noisy false-unread inbox.
 
 ### History and navigation
 
-- Should Back and Forward track every selection or collapse repeated adjacent
-  documents?
-- Should history persist across launches?
-- Does returning to a document restore its last scroll position?
-- What shortcut should open Quick Switch without conflicting with macOS
-  conventions?
+- Back and Forward track document selections while collapsing repeated adjacent
+  selections.
+- History persists across launches.
+- Returning to a document restores its last scroll position during the current
+  app session.
+- `⇧⌘O` opens Quick Switcher; `⌘[` and `⌘]` navigate Back and Forward.
 
 ### Migration
 

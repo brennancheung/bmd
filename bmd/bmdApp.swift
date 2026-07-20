@@ -26,9 +26,30 @@ struct bmdApp: App {
                 }
                 .keyboardShortcut("o", modifiers: .command)
 
-                Button("Clear Recents") {
-                    appState.clearRecents()
+                Button("Close Unpinned Documents") {
+                    appState.closeUnpinnedDocuments()
                 }
+            }
+
+            CommandMenu("Navigate") {
+                Button("Back") {
+                    appState.goBack()
+                }
+                .keyboardShortcut("[", modifiers: .command)
+                .disabled(!appState.canGoBack)
+
+                Button("Forward") {
+                    appState.goForward()
+                }
+                .keyboardShortcut("]", modifiers: .command)
+                .disabled(!appState.canGoForward)
+
+                Divider()
+
+                Button("Switch Document…") {
+                    appState.showQuickSwitcher()
+                }
+                .keyboardShortcut("o", modifiers: [.command, .shift])
             }
 
             CommandGroup(after: .toolbar) {

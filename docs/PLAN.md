@@ -4,10 +4,10 @@
 
 1. Single `Window` scene titled **bmd**  
 2. `NavigationSplitView`:
-   - Sidebar: global Watched activity, Recents, and project-opened files
+   - Sidebar: agent Updates, a stable Open working set, and project-opened files
    - Detail: `MarkdownWebView`  
 3. Open Markdown → read UTF-8 → inject into marked → show HTML  
-4. On open: push path onto recent stack (dedupe, cap list)  
+4. On open: add the path to a stable, deduplicated Open working set
 5. Add folder → persist it, recursively list Markdown, and watch for changes
 6. Bundle offline viewer assets (no CDN at runtime)
 
@@ -18,7 +18,7 @@
 - Default zoom 125%; semantic width preset, zoom, prose width, and table width are configurable
 - Appearance follows the macOS system setting by default, with explicit light/dark overrides
 - CSS: readable prose track; tables share its left edge and can grow to the right
-- One open file at a time in the detail pane (switching recents replaces content)  
+- One open file at a time in the detail pane; navigation replaces the detail content
 - No splash marketing UI — empty state with Open / Drop / paste-path later  
 
 ## Daily-driver usability milestone
@@ -33,7 +33,21 @@
 - [x] Disable stale frame restoration and keep windows on-screen across monitor changes
 - [x] Install every scheme build to a stable `/Applications/bmd.app`
 - [x] Register or select bmd as the macOS default Markdown viewer
-- [x] Add persistent menu-bar access to Watched, Recents, Open, Settings, and Quit
+- [x] Add persistent menu-bar access to Updates, Open, navigation, Settings, and Quit
+
+## Document navigation milestone
+
+- [x] Replace reordering Recents with a stable, persistent Open working set
+- [x] Migrate existing Recents into Open without losing document history
+- [x] Keep existing Open and project rows fixed when a document is selected again
+- [x] Deduplicate open documents and agent updates into one persistent representation
+- [x] Show changed Open documents with an in-place unread indicator
+- [x] Add pin, close, and explicit move controls for Open documents
+- [x] Add persistent document Back and Forward history with standard shortcuts
+- [x] Restore each document's scroll position while switching during a session
+- [x] Add a searchable Quick Switcher across Open, Updates, Projects, and history
+- [x] Confine frecency ranking to the transient Quick Switcher
+- [x] Update the menu-bar companion for the Open and Updates model
 
 ## Watched-folder workflow
 
@@ -41,10 +55,10 @@
 - [x] Recursively scan `.md`, `.markdown`, `.mdown`, `.mkd`, and `.mdwn` files
 - [x] Ignore `node_modules` by default and support configurable exact-name rules
 - [x] Watch projects with recursive FSEvents
-- [x] Show created, modified, and currently open files in one global Watched section
-- [x] Limit Watched and Recents independently through Settings
+- [x] Show created and modified files in a global Updates section
+- [x] Limit Updates and the Open working set independently through Settings
 - [x] Show only opened files under each project
-- [x] Show project-relative paths in Recents and add project-row file actions
+- [x] Show project-relative paths in Open and add project-row file actions
 - [x] Auto-refresh the current file after external writes and atomic replacements
 - [x] Provide Copy Path and Reveal in Finder context actions
 - [ ] Add optional glob rules and activity retention controls after real-world use
@@ -91,7 +105,8 @@ Agents write markdown, then:
 bmd "$OUT/report.md"
 ```
 
-App activates, opens file, recent stack updates. Human uses sidebar to jump back.
+App activates, opens the file, and adds it to the stable Open working set. The
+human uses Open, Back/Forward, or Quick Switcher to move between documents.
 
 ## Tech choices (v1)
 

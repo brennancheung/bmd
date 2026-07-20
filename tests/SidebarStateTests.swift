@@ -8,6 +8,7 @@ enum SidebarStateTests {
         testRecentDisplayPaths()
         testOpenedProjectFiles()
         testWatchedActivity()
+        testLegacyActivityMigration()
         print("SidebarStateTests passed")
     }
 
@@ -18,14 +19,14 @@ enum SidebarStateTests {
         let externalFile = URL(fileURLWithPath: "/tmp/notes.md")
 
         expect(
-            SidebarFileState.recentDisplayPath(
+            SidebarFileState.documentDisplayPath(
                 for: nestedFile,
                 projects: [parent, nested]
             ) == "app › docs › guide.md",
             "recent paths should use the most specific project and relative path"
         )
         expect(
-            SidebarFileState.recentDisplayPath(
+            SidebarFileState.documentDisplayPath(
                 for: externalFile,
                 projects: [parent, nested]
             ) == "notes.md",
@@ -69,8 +70,8 @@ enum SidebarStateTests {
             project: project,
             openedAt: Date(timeIntervalSince1970: 2)
         )
-        expect(state[project.path]?.map(\.path) == [second.path, first.path],
-               "projects should contain only explicitly opened files, newest first")
+        expect(state[project.path]?.map(\.path) == [first.path, second.path],
+               "projects should contain only explicitly opened files in stable order")
     }
 
     private static func testWatchedActivity() {
@@ -105,22 +106,50 @@ enum SidebarStateTests {
         expect(merged.first?.contextLabel == "project",
                "watched rows should identify their project without showing the full path")
         expect(
-            SidebarFileState.visibleActivity(
+            SidebarFileState.visibleUpdates(
                 merged,
-                currentPath: old.path,
+                openPaths: [old.path],
                 maximumCount: 1
-            ).map(\.path) == [old.path],
-            "the current file should remain visible even when the watched limit is full"
+            ).map(\.path) == [new.path],
+            "open documents should show update state in place instead of duplicating rows"
         )
+    }
+
+    private static func testLegacyActivityMigration() {
+        let suiteName = "bmd-sidebar-tests-\(UUID().uuidString)"
+        guard let defaults = UserDefaults(suiteName: suiteName) else {
+            fail("could not create isolated defaults")
+        }
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        let file = FileManager.default.temporaryDirectory
+            .appendingPathComponent("bmd-legacy-activity-\(UUID().uuidString).md")
+        _ = FileManager.default.createFile(atPath: file.path, contents: Data())
+        defer { try? FileManager.default.removeItem(at: file) }
+        let item = WatchedActivityItem(
+            path: file.path,
+            projectPath: nil,
+            relativePath: file.lastPathComponent,
+            modifiedAt: Date(timeIntervalSince1970: 1),
+            detectedAt: Date(timeIntervalSince1970: 2),
+            readAt: nil
+        )
+        defaults.set(try? JSONEncoder().encode([item]), forKey: "bmd.watchedActivity")
+
+        let migrated = SidebarStateStore(defaults: defaults).loadActivity()
+        expect(migrated.first?.readAt != nil,
+               "legacy watched activity should migrate as read instead of flooding Updates")
     }
 
     private static func expect(
         _ condition: @autoclosure () -> Bool,
         _ message: String
     ) {
-        guard condition() else {
-            FileHandle.standardError.write(Data("Test failed: \(message)\n".utf8))
-            Darwin.exit(EXIT_FAILURE)
-        }
+        guard condition() else { fail(message) }
+    }
+
+    private static func fail(_ message: String) -> Never {
+        FileHandle.standardError.write(Data("Test failed: \(message)\n".utf8))
+        Darwin.exit(EXIT_FAILURE)
     }
 }

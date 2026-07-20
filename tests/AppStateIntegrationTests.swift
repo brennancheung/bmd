@@ -34,8 +34,10 @@ enum AppStateIntegrationTests {
         }
         expect(state.projectFiles(in: project).map(\.path) == [opened.path],
                "a project should show the opened file but not every Markdown file")
-        expect(state.watchedActivity.first?.path == opened.path,
-               "the currently opened file should be first in Watched")
+        expect(state.openDocuments.first?.path == opened.path,
+               "an opened file should enter the stable Open working set")
+        expect(state.watchedActivity.isEmpty,
+               "opening a file should not create a synthetic update")
 
         try await Task.sleep(nanoseconds: 300_000_000)
         let originalToken = state.renderToken
@@ -47,6 +49,10 @@ enum AppStateIntegrationTests {
                "an external replacement should automatically re-render the current file")
         expect(state.markdownText == "second version from agent",
                "auto-refresh should load the replacement contents")
+        expect(state.unreadUpdate(for: opened.path) != nil,
+               "a changed open document should receive update state in place")
+        expect(state.updates(limit: 5).isEmpty,
+               "a changed open document should not be duplicated under Updates")
 
         let newFile = root.appendingPathComponent("new-agent-output.md")
         try Data("new".utf8).write(to: newFile)

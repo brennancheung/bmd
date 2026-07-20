@@ -6,6 +6,7 @@ struct WatchedActivityItem: Identifiable, Codable, Hashable {
     let relativePath: String
     let modifiedAt: Date
     let detectedAt: Date
+    var readAt: Date?
 
     var id: String { path }
     var url: URL { URL(fileURLWithPath: path) }
@@ -42,7 +43,7 @@ enum SidebarFileState {
         return filePath.hasPrefix(projectPath + "/")
     }
 
-    static func recentDisplayPath(
+    static func documentDisplayPath(
         for file: URL,
         projects: [BookmarkItem]
     ) -> String {
@@ -69,7 +70,8 @@ enum SidebarFileState {
                 projectPath: file.rootPath,
                 relativePath: file.relativePath,
                 modifiedAt: file.modifiedAt,
-                detectedAt: detectedAt
+                detectedAt: detectedAt,
+                readAt: nil
             )
         }
         return mergeActivity(
@@ -79,7 +81,7 @@ enum SidebarFileState {
         )
     }
 
-    static func recordOpenedFile(
+    static func recordFileUpdate(
         existingActivity: [WatchedActivityItem],
         file: URL,
         project: BookmarkItem?,
@@ -95,7 +97,8 @@ enum SidebarFileState {
             projectPath: project?.path,
             relativePath: relativePath,
             modifiedAt: modifiedAt,
-            detectedAt: detectedAt
+            detectedAt: detectedAt,
+            readAt: nil
         )
         return mergeActivity(
             existing: existingActivity,
@@ -114,24 +117,47 @@ enum SidebarFileState {
         var result = existing
         var projectFiles = result[project.path] ?? []
         let normalizedPath = file.standardizedFileURL.path
-        projectFiles.removeAll { $0.path == normalizedPath }
-        projectFiles.insert(BookmarkItem.file(file, at: openedAt), at: 0)
+        if let index = projectFiles.firstIndex(where: { $0.path == normalizedPath }) {
+            projectFiles[index].lastOpenedAt = openedAt
+            projectFiles[index].displayName = file.lastPathComponent
+        } else {
+            projectFiles.append(BookmarkItem.file(file, at: openedAt))
+        }
         result[project.path] = Array(projectFiles.prefix(maximumCount))
         return result
     }
 
-    static func visibleActivity(
+    static func visibleUpdates(
         _ activity: [WatchedActivityItem],
-        currentPath: String?,
+        openPaths: Set<String>,
         maximumCount: Int
     ) -> [WatchedActivityItem] {
         guard maximumCount > 0 else { return [] }
-        guard let currentPath,
-              let current = activity.first(where: { $0.path == currentPath }) else {
-            return Array(activity.prefix(maximumCount))
+        return Array(
+            activity
+                .filter { $0.readAt == nil && !openPaths.contains($0.path) }
+                .prefix(maximumCount)
+        )
+    }
+
+    static func markRead(
+        path: String,
+        in activity: [WatchedActivityItem],
+        at date: Date
+    ) -> [WatchedActivityItem] {
+        activity.map { item in
+            guard item.path == path, item.readAt == nil else { return item }
+            var read = item
+            read.readAt = date
+            return read
         }
-        let remaining = activity.filter { $0.path != currentPath }
-        return [current] + Array(remaining.prefix(maximumCount - 1))
+    }
+
+    static func unreadUpdate(
+        for path: String,
+        in activity: [WatchedActivityItem]
+    ) -> WatchedActivityItem? {
+        activity.first { $0.path == path && $0.readAt == nil }
     }
 
     private static func mergeActivity(

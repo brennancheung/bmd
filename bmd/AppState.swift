@@ -9,16 +9,24 @@ final class AppState: ObservableObject {
     @Published private(set) var markdownText: String = ""
     @Published private(set) var renderToken: UInt64 = 0
     @Published private(set) var statusMessage: String?
-    @Published var recents: [BookmarkItem]
+    @Published private(set) var openDocuments: [OpenDocumentItem]
     @Published var projects: [BookmarkItem]
     @Published private(set) var watchedActivity: [WatchedActivityItem]
     @Published private(set) var projectFilesByFolder: [String: [BookmarkItem]]
+    @Published private(set) var history: DocumentHistoryState
+    @Published var isQuickSwitcherPresented = false
 
     private let store: RecentStore
     private let sidebarStore: SidebarStateStore
     private let folderWatcher: MarkdownFolderWatcher
     private let currentFileWatcher: CurrentMarkdownFileWatcher
     private var ignoredDirectoryNames = MarkdownFolderDiscovery.defaultIgnoredDirectoryNames
+    private var openDocumentLimit = AppPreferences.Defaults.openFileLimit
+
+    private enum HistoryBehavior: Equatable {
+        case record
+        case preservePosition
+    }
 
     init(
         store: RecentStore = .shared,
@@ -31,17 +39,24 @@ final class AppState: ObservableObject {
         self.folderWatcher = folderWatcher
         self.currentFileWatcher = currentFileWatcher
         let loadedRecents = store.loadRecents()
+        let loadedOpenDocuments = store.loadOpenDocuments()
         let loadedProjects = store.loadProjects()
         var loadedProjectFiles = sidebarStore.loadProjectFiles()
         for project in loadedProjects where loadedProjectFiles[project.path] == nil {
-            loadedProjectFiles[project.path] = loadedRecents.filter {
+            let migratedItems = loadedOpenDocuments.isEmpty
+                ? loadedRecents
+                : loadedOpenDocuments.map {
+                    BookmarkItem.file($0.url, at: $0.lastViewedAt)
+                }
+            loadedProjectFiles[project.path] = migratedItems.filter {
                 SidebarFileState.contains(file: $0.url, in: project.url)
             }
         }
-        recents = loadedRecents
+        openDocuments = loadedOpenDocuments
         projects = loadedProjects
         watchedActivity = sidebarStore.loadActivity()
         projectFilesByFolder = loadedProjectFiles
+        history = sidebarStore.loadHistory()
         sidebarStore.saveProjectFiles(loadedProjectFiles)
 
         folderWatcher.onUpdate = { [weak self] update in
@@ -60,6 +75,9 @@ final class AppState: ObservableObject {
     var baseDirectory: URL? {
         currentFile?.deletingLastPathComponent()
     }
+
+    var canGoBack: Bool { history.canGoBack }
+    var canGoForward: Bool { history.canGoForward }
 
     func presentOpenPanel() {
         presentOpenPanel(startingAt: nil, restrictToMarkdown: false)
@@ -105,19 +123,28 @@ final class AppState: ObservableObject {
     }
 
     func openFile(_ url: URL) {
+        openFile(url, historyBehavior: .record)
+    }
+
+    private func openFile(_ url: URL, historyBehavior: HistoryBehavior) {
         let resolved = url.standardizedFileURL
         let isDifferentFile = currentFile?.path != resolved.path
         guard readFile(resolved) else { return }
 
         let openedAt = Date()
-        recents = store.rememberRecent(resolved, at: openedAt)
-        let project = SidebarFileState.containingProject(for: resolved, projects: projects)
-        recordWatchedFile(
+        openDocuments = DocumentNavigation.rememberOpen(
             resolved,
-            project: project,
-            modifiedAt: fileModificationDate(resolved) ?? openedAt,
-            detectedAt: openedAt
+            in: openDocuments,
+            at: openedAt,
+            maximumCount: openDocumentLimit
         )
+        store.saveOpenDocuments(openDocuments)
+        markUpdateRead(path: resolved.path, at: openedAt)
+        if historyBehavior == .record {
+            history.record(resolved.path)
+            sidebarStore.saveHistory(history)
+        }
+        let project = SidebarFileState.containingProject(for: resolved, projects: projects)
         if let project {
             projectFilesByFolder = SidebarFileState.rememberProjectFile(
                 existing: projectFilesByFolder,
@@ -133,16 +160,24 @@ final class AppState: ObservableObject {
         }
     }
 
-    func openRecent(_ item: BookmarkItem) {
+    func openDocument(_ item: OpenDocumentItem) {
+        if FileManager.default.fileExists(atPath: item.path) {
+            openFile(item.url)
+        } else {
+            statusMessage = "Could not open \(item.displayName)"
+            closeOpenDocument(item)
+        }
+    }
+
+    func openBookmark(_ item: BookmarkItem) {
         if let url = store.resolve(item) {
             openFile(url)
         } else {
             statusMessage = "Could not open \(item.displayName)"
-            recents = store.loadRecents()
         }
     }
 
-    func openWatched(_ item: WatchedActivityItem) {
+    func openUpdate(_ item: WatchedActivityItem) {
         openFile(item.url)
     }
 
@@ -152,9 +187,9 @@ final class AppState: ObservableObject {
         guard let project = projects.first(where: { $0.path == normalized.path }) else { return }
 
         if projectFilesByFolder[project.path] == nil {
-            projectFilesByFolder[project.path] = recents.filter {
-                SidebarFileState.contains(file: $0.url, in: project.url)
-            }
+            projectFilesByFolder[project.path] = openDocuments
+                .filter { SidebarFileState.contains(file: $0.url, in: project.url) }
+                .map { BookmarkItem.file($0.url, at: $0.lastViewedAt) }
             sidebarStore.saveProjectFiles(projectFilesByFolder)
         }
         restartFolderWatcher()
@@ -167,28 +202,86 @@ final class AppState: ObservableObject {
         restartFolderWatcher()
     }
 
-    func removeRecent(_ item: BookmarkItem) {
-        recents = store.removeRecent(item)
+    func closeOpenDocument(_ item: OpenDocumentItem) {
+        openDocuments.removeAll { $0.path == item.path }
+        store.saveOpenDocuments(openDocuments)
+
+        guard currentFile?.path == item.path else { return }
+        if let replacement = openDocuments.last {
+            openFile(replacement.url, historyBehavior: .record)
+        } else {
+            currentFile = nil
+            markdownText = ""
+            renderToken &+= 1
+            currentFileWatcher.stop()
+        }
     }
 
-    func clearRecents() {
-        recents = store.clearRecents()
+    func closeUnpinnedDocuments() {
+        let currentPath = currentFile?.path
+        openDocuments.removeAll { !$0.isPinned && $0.path != currentPath }
+        store.saveOpenDocuments(openDocuments)
+    }
+
+    func togglePin(_ item: OpenDocumentItem) {
+        openDocuments = DocumentNavigation.togglePin(
+            path: item.path,
+            in: openDocuments
+        )
+        store.saveOpenDocuments(openDocuments)
+    }
+
+    func moveOpenDocument(_ item: OpenDocumentItem, by offset: Int) {
+        openDocuments = DocumentNavigation.move(
+            path: item.path,
+            by: offset,
+            in: openDocuments
+        )
+        store.saveOpenDocuments(openDocuments)
     }
 
     func projectFiles(in project: BookmarkItem) -> [BookmarkItem] {
         projectFilesByFolder[project.path] ?? []
     }
 
-    func recentDisplayPath(_ item: BookmarkItem) -> String {
-        SidebarFileState.recentDisplayPath(for: item.url, projects: projects)
+    func documentDisplayPath(_ item: OpenDocumentItem) -> String {
+        SidebarFileState.documentDisplayPath(for: item.url, projects: projects)
     }
 
-    func watchedFiles(limit: Int) -> [WatchedActivityItem] {
-        SidebarFileState.visibleActivity(
-            watchedActivity,
-            currentPath: currentFile?.path,
+    func updates(limit: Int) -> [WatchedActivityItem] {
+        SidebarFileState.visibleUpdates(
+            watchedActivity.filter { FileManager.default.fileExists(atPath: $0.path) },
+            openPaths: Set(openDocuments.map(\.path)),
             maximumCount: limit
         )
+    }
+
+    func unreadUpdate(for path: String) -> WatchedActivityItem? {
+        SidebarFileState.unreadUpdate(for: path, in: watchedActivity)
+    }
+
+    func quickSwitcherCandidates(query: String) -> [DocumentCandidate] {
+        DocumentNavigation.candidates(
+            openDocuments: openDocuments,
+            updates: watchedActivity,
+            projects: projects,
+            projectFilesByFolder: projectFilesByFolder,
+            history: history,
+            currentPath: currentFile?.path,
+            query: query
+        ).filter { FileManager.default.fileExists(atPath: $0.path) }
+    }
+
+    func showQuickSwitcher() {
+        isQuickSwitcherPresented = true
+    }
+
+    func goBack() {
+        navigateHistory(backward: true)
+    }
+
+    func goForward() {
+        navigateHistory(backward: false)
     }
 
     func refreshProjects() {
@@ -200,6 +293,21 @@ final class AppState: ObservableObject {
         guard normalized != self.ignoredDirectoryNames else { return }
         self.ignoredDirectoryNames = normalized
         restartFolderWatcher()
+    }
+
+    func updateOpenDocumentLimit(_ limit: Int) {
+        openDocumentLimit = limit
+        guard openDocuments.count > limit else { return }
+        var reduced = openDocuments
+        while reduced.count > limit,
+              let index = reduced.indices
+                .filter({ !reduced[$0].isPinned && reduced[$0].path != currentFile?.path })
+                .min(by: { reduced[$0].lastViewedAt < reduced[$1].lastViewedAt }) {
+            reduced.remove(at: index)
+        }
+        guard reduced != openDocuments else { return }
+        openDocuments = reduced
+        store.saveOpenDocuments(openDocuments)
     }
 
     private func restartFolderWatcher() {
@@ -252,7 +360,7 @@ final class AppState: ObservableObject {
             for: snapshot.url,
             projects: projects
         )
-        recordWatchedFile(
+        recordFileUpdate(
             snapshot.url,
             project: project,
             modifiedAt: snapshot.modifiedAt,
@@ -261,13 +369,13 @@ final class AppState: ObservableObject {
         _ = readFile(snapshot.url)
     }
 
-    private func recordWatchedFile(
+    private func recordFileUpdate(
         _ file: URL,
         project: BookmarkItem?,
         modifiedAt: Date,
         detectedAt: Date
     ) {
-        watchedActivity = SidebarFileState.recordOpenedFile(
+        watchedActivity = SidebarFileState.recordFileUpdate(
             existingActivity: watchedActivity,
             file: file,
             project: project,
@@ -277,8 +385,31 @@ final class AppState: ObservableObject {
         sidebarStore.saveActivity(watchedActivity)
     }
 
-    private func fileModificationDate(_ file: URL) -> Date? {
-        (try? file.resourceValues(forKeys: [.contentModificationDateKey]))?
-            .contentModificationDate
+    private func markUpdateRead(path: String, at date: Date) {
+        let updated = SidebarFileState.markRead(
+            path: path,
+            in: watchedActivity,
+            at: date
+        )
+        guard updated != watchedActivity else { return }
+        watchedActivity = updated
+        sidebarStore.saveActivity(watchedActivity)
     }
+
+    private func navigateHistory(backward: Bool) {
+        var nextHistory = history
+        while let path = backward ? nextHistory.goBack() : nextHistory.goForward() {
+            guard FileManager.default.fileExists(atPath: path) else { continue }
+            history = nextHistory
+            sidebarStore.saveHistory(history)
+            openFile(
+                URL(fileURLWithPath: path),
+                historyBehavior: .preservePosition
+            )
+            return
+        }
+        history = nextHistory
+        sidebarStore.saveHistory(history)
+    }
+
 }

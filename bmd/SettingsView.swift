@@ -62,14 +62,14 @@ struct SettingsView: View {
                     suffix: "%"
                 )
                 countStepper(
-                    title: "Watched files",
-                    value: $preferences.watchedFileLimit,
-                    range: AppPreferences.Limits.watchedFileLimit
+                    title: "Updates shown",
+                    value: $preferences.updateFileLimit,
+                    range: AppPreferences.Limits.updateFileLimit
                 )
                 countStepper(
-                    title: "Recent files",
-                    value: $preferences.recentFileLimit,
-                    range: AppPreferences.Limits.recentFileLimit
+                    title: "Open documents",
+                    value: $preferences.openFileLimit,
+                    range: AppPreferences.Limits.openFileLimit
                 )
                 LabeledContent("Ignored folders") {
                     TextField(

@@ -50,8 +50,8 @@ final class AppPreferences: ObservableObject {
         static let proseWidth = 820.0
         static let tableWidth = 1200.0
         static let sidebarSectionHeaderScalePercent = 100.0
-        static let watchedFileLimit = 5
-        static let recentFileLimit = 10
+        static let updateFileLimit = 5
+        static let openFileLimit = 10
         static let ignoredDirectoryNamesText = "node_modules"
     }
 
@@ -60,8 +60,8 @@ final class AppPreferences: ObservableObject {
         static let proseWidth = 640.0...1040.0
         static let tableWidth = 820.0...1600.0
         static let sidebarSectionHeaderScalePercent = 75.0...175.0
-        static let watchedFileLimit = 1...20
-        static let recentFileLimit = 1...50
+        static let updateFileLimit = 1...20
+        static let openFileLimit = 1...50
 
         static func clamp(_ value: Double, to range: ClosedRange<Double>) -> Double {
             min(max(value, range.lowerBound), range.upperBound)
@@ -77,12 +77,14 @@ final class AppPreferences: ObservableObject {
         static let tableWidth = "bmd.preferences.tableWidth"
         static let sidebarSectionHeaderScalePercent =
             "bmd.preferences.sidebarSectionHeaderScalePercent"
-        static let watchedFileLimit = "bmd.preferences.watchedFileLimit"
-        static let recentFileLimit = "bmd.preferences.recentFileLimit"
+        static let updateFileLimit = "bmd.preferences.updateFileLimit"
+        static let openFileLimit = "bmd.preferences.openFileLimit"
+        static let legacyWatchedFileLimit = "bmd.preferences.watchedFileLimit"
+        static let legacyRecentFileLimit = "bmd.preferences.recentFileLimit"
         static let ignoredDirectoryNamesText = "bmd.preferences.ignoredDirectoryNames"
     }
 
-    private static let currentDefaultsVersion = 3
+    private static let currentDefaultsVersion = 4
     private static let zoomDefaultsVersion = 2
     private let store: UserDefaults
 
@@ -115,12 +117,12 @@ final class AppPreferences: ObservableObject {
         }
     }
 
-    @Published var watchedFileLimit: Int {
-        didSet { store.set(watchedFileLimit, forKey: Key.watchedFileLimit) }
+    @Published var updateFileLimit: Int {
+        didSet { store.set(updateFileLimit, forKey: Key.updateFileLimit) }
     }
 
-    @Published var recentFileLimit: Int {
-        didSet { store.set(recentFileLimit, forKey: Key.recentFileLimit) }
+    @Published var openFileLimit: Int {
+        didSet { store.set(openFileLimit, forKey: Key.openFileLimit) }
     }
 
     @Published var ignoredDirectoryNamesText: String {
@@ -178,22 +180,30 @@ final class AppPreferences: ObservableObject {
             fallback: Defaults.sidebarSectionHeaderScalePercent,
             range: Limits.sidebarSectionHeaderScalePercent
         )
-        watchedFileLimit = Self.integer(
+        let updateFileLimitKey = store.object(forKey: Key.updateFileLimit) == nil
+            ? Key.legacyWatchedFileLimit
+            : Key.updateFileLimit
+        updateFileLimit = Self.integer(
             in: store,
-            forKey: Key.watchedFileLimit,
-            fallback: Defaults.watchedFileLimit,
-            range: Limits.watchedFileLimit
+            forKey: updateFileLimitKey,
+            fallback: Defaults.updateFileLimit,
+            range: Limits.updateFileLimit
         )
-        recentFileLimit = Self.integer(
+        let openFileLimitKey = store.object(forKey: Key.openFileLimit) == nil
+            ? Key.legacyRecentFileLimit
+            : Key.openFileLimit
+        openFileLimit = Self.integer(
             in: store,
-            forKey: Key.recentFileLimit,
-            fallback: Defaults.recentFileLimit,
-            range: Limits.recentFileLimit
+            forKey: openFileLimitKey,
+            fallback: Defaults.openFileLimit,
+            range: Limits.openFileLimit
         )
         ignoredDirectoryNamesText = store.string(forKey: Key.ignoredDirectoryNamesText)
             ?? Defaults.ignoredDirectoryNamesText
 
         store.set(zoomPercent, forKey: Key.zoomPercent)
+        store.set(updateFileLimit, forKey: Key.updateFileLimit)
+        store.set(openFileLimit, forKey: Key.openFileLimit)
         store.set(Self.currentDefaultsVersion, forKey: Key.defaultsVersion)
     }
 
@@ -216,8 +226,8 @@ final class AppPreferences: ObservableObject {
         proseWidth = Defaults.proseWidth
         tableWidth = Defaults.tableWidth
         sidebarSectionHeaderScalePercent = Defaults.sidebarSectionHeaderScalePercent
-        watchedFileLimit = Defaults.watchedFileLimit
-        recentFileLimit = Defaults.recentFileLimit
+        updateFileLimit = Defaults.updateFileLimit
+        openFileLimit = Defaults.openFileLimit
         ignoredDirectoryNamesText = Defaults.ignoredDirectoryNamesText
     }
 

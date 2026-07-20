@@ -45,6 +45,7 @@ xcrun swiftc -parse-as-library \
 
 xcrun swiftc -parse-as-library \
   bmd/RecentStore.swift bmd/FolderWatcher.swift bmd/SidebarFileState.swift \
+  bmd/DocumentNavigation.swift \
   bmd/SidebarStateStore.swift \
   tests/SidebarStateTests.swift \
   -framework CoreServices \
@@ -52,8 +53,16 @@ xcrun swiftc -parse-as-library \
 "${test_output}/SidebarStateTests"
 
 xcrun swiftc -parse-as-library \
+  bmd/RecentStore.swift bmd/FolderWatcher.swift bmd/SidebarFileState.swift \
+  bmd/DocumentNavigation.swift tests/DocumentNavigationTests.swift \
+  -framework CoreServices \
+  -o "${test_output}/DocumentNavigationTests"
+"${test_output}/DocumentNavigationTests"
+
+xcrun swiftc -parse-as-library \
   bmd/RecentStore.swift bmd/FolderWatcher.swift bmd/CurrentFileWatcher.swift \
-  bmd/SidebarFileState.swift bmd/SidebarStateStore.swift bmd/AppState.swift \
+  bmd/SidebarFileState.swift bmd/DocumentNavigation.swift \
+  bmd/SidebarStateStore.swift bmd/AppPreferences.swift bmd/AppState.swift \
   tests/AppStateIntegrationTests.swift \
   -framework AppKit -framework Combine -framework UniformTypeIdentifiers \
   -framework CoreServices \

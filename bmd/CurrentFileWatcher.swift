@@ -69,6 +69,14 @@ final class CurrentMarkdownFileWatcher {
         }
     }
 
+    func stop() {
+        queue.async { [weak self] in
+            self?.stopMonitoring()
+            self?.file = nil
+            self?.previousSnapshot = nil
+        }
+    }
+
     private func startPolling() {
         guard pollingInterval > 0 else { return }
         let timer = DispatchSource.makeTimerSource(queue: queue)

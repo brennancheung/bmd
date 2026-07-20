@@ -21,10 +21,10 @@ Primary pain points with existing Quick Look Markdown tools (esp. QLMarkdown):
 | In v1 | Deferred |
 |-------|----------|
 | Single window app (SwiftUI + WKWebView) | Quick Look extension |
-| Persistent menu-bar access to Watched and Recents | Full background agent automation |
+| Persistent menu-bar access to Updates and Open | Full background agent automation |
 | Open `.md` via Open dialog, drag-drop, `open -a bmd`, CLI `bmd` | Multi-window per file |
-| Sidebar: **Watched activity** + **Recents** + **Projects** | Full Finder replacement |
-| Agents open files with this app → they land on recent stack | YAML/Rmd/Quarto science stack |
+| Sidebar: **Updates** + stable **Open** + **Projects** | Full Finder replacement |
+| Agents open files with this app → they join Open without reordering it | YAML/Rmd/Quarto science stack |
 | Web markdown, syntax, math, and Mermaid | Full editing workflows |
 | Table-friendly CSS + centered, full-height window | App Store sandboxing/bookmarks |
 | Relative local images via bounded local URL scheme | Quick Look extension |
@@ -34,7 +34,7 @@ Primary pain points with existing Quick Look Markdown tools (esp. QLMarkdown):
 ```
 Native (Swift)
   - screen-safe window placement and native reader controls
-  - global watched activity, recents, and project-opened files
+  - agent updates, stable open documents, history, and project-opened files
   - recursive project discovery and dedicated current-file watching
   - file access + WebKit document read root
   - pass markdown text + base directory into webview
@@ -53,7 +53,7 @@ Swift owns:
 
 - Which file is open  
 - Reading file bytes  
-- Watched, recent, project, and opened-file lists
+- Updates, Open, history, project, and opened-file lists
 - Serving relative assets from the current file’s directory
 
 JS owns:
@@ -77,7 +77,7 @@ Script at `scripts/bmd` uses `open -a bmd` (or the built app path). Agents can:
 bmd /path/to/report.md
 ```
 
-so the file becomes current + top of recents.
+so the file becomes current and joins the stable Open working set.
 
 ### Registration
 
@@ -98,12 +98,12 @@ We studied it only to know how QL works and what to *avoid*. bmd is greenfield a
 
 - [x] Repo + handoff docs  
 - [x] SwiftUI single window  
-- [x] Sidebar Watched + Recents + Projects hierarchy
+- [x] Sidebar Updates + Open + Projects hierarchy
 - [x] WKWebView + marked  
-- [x] Open file, render, remember recents  
+- [x] Open file, render, and remember a stable working set
 - [x] Debug build succeeds (`xcodebuild -scheme bmd`)  
 - [ ] Optional: install `bmd` on PATH (`ln -s …/scripts/bmd /usr/local/bin/bmd`)  
-- [ ] Human smoke-test: open `examples/welcome.md`, check tables/recents
+- [x] Human smoke-test: open documents, switch, navigate Back, and restore scroll
 
 ### Phase 2 — Daily driver
 
@@ -112,8 +112,8 @@ We studied it only to know how QL works and what to *avoid*. bmd is greenfield a
 - [x] Native View menu zoom commands (Command-plus/minus/zero)
 - [x] Stable `/Applications/bmd.app` install/update workflow
 - [x] Set bmd as the Markdown default from Settings or the installer
-- [x] Keep Watched, Recents, Open, Settings, and Quit available from the menu bar
-- [x] Watched projects: surface created/modified files without listing every Markdown file
+- [x] Keep Updates, Open, navigation, Settings, and Quit available from the menu bar
+- [x] Watched folders surface created/modified files without listing every Markdown file
 - [x] Auto-refresh the current Markdown file after external changes
 - Optional folder grants/bookmarks if App Store sandboxing is added later
 - [x] Better CSS, light/dark
@@ -158,7 +158,7 @@ Smoke test:
 
 1. Run bmd  
 2. Open an example `.md`  
-3. Confirm sidebar recent entry  
+3. Confirm the document joins Open without moving existing rows
 4. Resize window; confirm tables not trapped forever in a phone column  
 5. `scripts/bmd /path/to/file.md` once app is built/installed  
 

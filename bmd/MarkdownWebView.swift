@@ -53,8 +53,10 @@ struct MarkdownWebView: NSViewRepresentable {
             if coordinator.grantedReadRoot?.path != path {
                 coordinator.grantedReadRoot = baseDirectory
                 coordinator.localAssetHandler.documentDirectory = baseDirectory
-                coordinator.loadViewer(webView: webView, readRoot: baseDirectory)
-                return
+                if coordinator.renderedDocumentIdentifier == nil {
+                    coordinator.loadViewer(webView: webView, readRoot: baseDirectory)
+                    return
+                }
             }
         }
 
@@ -78,10 +80,12 @@ struct MarkdownWebView: NSViewRepresentable {
         var pendingProseWidth: Double = AppPreferences.Defaults.proseWidth
         var pendingTableWidth: Double = AppPreferences.Defaults.tableWidth
         private var renderedToken: UInt64?
-        private var renderedDocumentIdentifier: String?
+        fileprivate var renderedDocumentIdentifier: String?
         private var renderedAppearance: String?
         private var renderedProseWidth: Double?
         private var renderedTableWidth: Double?
+        private var scrollPositions: [String: Double] = [:]
+        private var renderGeneration: UInt64 = 0
 
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
             viewerReady = true
@@ -119,12 +123,16 @@ struct MarkdownWebView: NSViewRepresentable {
             }
             let preserveScroll = renderedDocumentIdentifier != nil
                 && renderedDocumentIdentifier == pendingDocumentIdentifier
+            let previousDocumentIdentifier = renderedDocumentIdentifier
+            let nextDocumentIdentifier = pendingDocumentIdentifier
             renderedToken = pendingToken
             renderedDocumentIdentifier = pendingDocumentIdentifier
             renderedAppearance = pendingAppearance
             renderedProseWidth = pendingProseWidth
             renderedTableWidth = pendingTableWidth
 
+            renderGeneration &+= 1
+            let generation = renderGeneration
             let js = """
                 if (typeof window.bmdRender !== "function") {
                   throw new Error("Bundled Markdown renderer did not load");
@@ -147,17 +155,39 @@ struct MarkdownWebView: NSViewRepresentable {
                 "preserveScroll": preserveScroll,
             ]
             Task { @MainActor [weak self, weak webView] in
-                guard let webView else { return }
+                guard let self, let webView else { return }
                 do {
+                    if !preserveScroll, let previousDocumentIdentifier {
+                        let captured = try await webView.callAsyncJavaScript(
+                            "return window.scrollY || 0;",
+                            arguments: [:],
+                            in: nil,
+                            contentWorld: .page
+                        )
+                        if let position = captured as? NSNumber {
+                            self.scrollPositions[previousDocumentIdentifier] = position.doubleValue
+                        }
+                    }
+                    guard generation == self.renderGeneration else { return }
                     _ = try await webView.callAsyncJavaScript(
                         js,
                         arguments: arguments,
                         in: nil,
                         contentWorld: .page
                     )
-                    self?.logger.debug("Markdown render completed")
+                    if !preserveScroll,
+                       let nextDocumentIdentifier,
+                       let position = self.scrollPositions[nextDocumentIdentifier] {
+                        _ = try await webView.callAsyncJavaScript(
+                            "window.scrollTo(0, scrollPosition); return window.scrollY;",
+                            arguments: ["scrollPosition": position],
+                            in: nil,
+                            contentWorld: .page
+                        )
+                    }
+                    self.logger.debug("Markdown render completed")
                 } catch {
-                    self?.logger.error(
+                    self.logger.error(
                         "Markdown render failed: \(error.localizedDescription, privacy: .public)"
                     )
                 }

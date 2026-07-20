@@ -26,8 +26,9 @@ seconds. Repeated all day, those seconds added up—and kept pulling me out of t
 work.
 
 I built **bmd** to reduce that friction. It watches the folders where agents
-work, surfaces documents as they are created or modified, keeps project files
-easy to switch between, and refreshes the document you are already reading.
+work, surfaces documents as they are created or modified, keeps an active set
+of documents stable and easy to switch between, and refreshes the document you
+are already reading.
 
 The goal is simple: spend less time managing Markdown files and more time
 understanding what is in them.
@@ -37,13 +38,14 @@ understanding what is in them.
 ### The file comes to you
 
 Add the folders where your agents work. When a Markdown file is created or
-updated, it appears in **Watched**—no trip through Finder required.
+updated, it appears in **Updates**—no trip through Finder required.
 
 ### Switch without searching
 
-Move between watched files, recent documents, and project files from one
-sidebar. The menu-bar app keeps the latest documents close even when the main
-window is closed.
+Keep active documents in a stable **Open** list where clicking never moves the
+row you just used. Move Back and Forward through reading history, or search
+Open, Updates, Projects, and history from the Quick Switcher. The menu-bar app
+keeps the same controls close even when the main window is closed.
 
 ### Follow work as it changes
 
@@ -100,7 +102,7 @@ Once bmd is open:
 
 1. Add the project folders where agents create Markdown.
 2. Let the agent write files normally.
-3. Open the latest document from **Watched**.
+3. Open the latest document from **Updates**.
 4. Keep reading while bmd follows subsequent changes.
 
 ## Open a document from an agent or script
@@ -118,17 +120,22 @@ ln -sf "$PWD/scripts/bmd" /usr/local/bin/bmd
 bmd path/to/report.md
 ```
 
-Opening a document places it at the top of Watched and Recents. If the document
-belongs to an added project, bmd also keeps it under that project for quick
-switching later.
+Opening a document adds it to **Open** without moving documents that are already
+there. If the document belongs to an added project, bmd also keeps it under that
+project for location-oriented navigation.
 
 ## How the sidebar works
 
-- **Watched** shows the latest Markdown files created, modified, or opened in
-  the folders you watch.
-- **Recents** keeps documents you opened across all projects close at hand.
+- **Open** is a stable working set. Selecting a document changes its highlight,
+  not its row position. Documents can be pinned, moved explicitly, or closed.
+- **Updates** shows new agent-created or agent-modified Markdown. A changed Open
+  document receives an update dot in place instead of appearing twice.
 - **Projects** remembers the documents you opened inside each project without
   turning the sidebar into another enormous file tree.
+
+Use `⌘[` and `⌘]` to move Back and Forward through document history. Use `⇧⌘O`
+to open the Quick Switcher and search across Open, Updates, Projects, and
+history. bmd remembers each document's reading position while you switch.
 
 Project folders are watched recursively, but `node_modules`, hidden folders,
 and application packages are skipped. Additional folder names can be ignored
@@ -148,7 +155,9 @@ Closing the reader window leaves bmd available in the menu bar. Choose
 <summary><strong>Architecture and local file access</strong></summary>
 
 bmd uses SwiftUI for its window, navigation, settings, commands, and persistent
-state. A `WKWebView` reading surface uses bundled copies of marked,
+state. The navigation model is implemented as testable pure state transitions,
+while `AppState` applies filesystem and persistence effects. A `WKWebView`
+reading surface uses bundled copies of marked,
 highlight.js, KaTeX, and Mermaid to render documents without a network
 connection.
 
@@ -184,6 +193,8 @@ Useful project references:
 - [`docs/CONTEXT.md`](docs/CONTEXT.md) explains the product intent and
   architecture.
 - [`docs/PLAN.md`](docs/PLAN.md) tracks current milestones and the roadmap.
+- [`docs/ux-analysis/sidebar-document-switching.md`](docs/ux-analysis/sidebar-document-switching.md)
+  documents the interaction analysis behind Open, Updates, and Quick Switcher.
 - [`examples/rendering-showcase.md`](examples/rendering-showcase.md) exercises
   the supported rendering formats.
 
