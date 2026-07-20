@@ -13,7 +13,7 @@
 
 ## Default UX choices
 
-- New windows use the current display's full visible height and a centered 1680 pt Wide preset
+- New windows use the current display's full visible height and a centered 1920 pt Wide preset
 - Window placement is recalculated from the available screens; absolute coordinates are not persisted
 - Default zoom 125%; semantic width preset, zoom, prose width, and table width are configurable
 - Appearance follows the macOS system setting by default, with explicit light/dark overrides

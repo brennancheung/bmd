@@ -18,7 +18,7 @@ struct bmdApp: App {
                     appDelegate.drainPending(into: appState)
                 }
         }
-        .defaultSize(width: 1680, height: 900)
+        .defaultSize(width: 1920, height: 900)
         .commands {
             CommandGroup(replacing: .newItem) {
                 Button("Open…") {

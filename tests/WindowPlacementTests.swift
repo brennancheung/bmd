@@ -5,9 +5,9 @@ import Foundation
 @main
 enum WindowPlacementTests {
     static func main() {
-        let desktop = NSRect(x: 0, y: 23, width: 1920, height: 1057)
+        let desktop = NSRect(x: 0, y: 23, width: 2560, height: 1057)
         let wide = MainWindowPlacement.frame(in: desktop, widthPreset: .wide)
-        expect(wide == NSRect(x: 120, y: 23, width: 1680, height: 1057),
+        expect(wide == NSRect(x: 320, y: 23, width: 1920, height: 1057),
                "Wide should be centered and use the full visible height")
 
         let laptop = NSRect(x: 0, y: 25, width: 1280, height: 775)

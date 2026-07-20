@@ -19,8 +19,8 @@ enum WindowWidthPreset: String, CaseIterable, Identifiable {
     var targetWidth: Double {
         switch self {
         case .comfortable: 1360
-        case .wide: 1680
-        case .extraWide: 1920
+        case .wide: 1920
+        case .extraWide: 2240
         }
     }
 }
