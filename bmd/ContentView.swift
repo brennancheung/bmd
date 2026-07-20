@@ -90,7 +90,7 @@ struct SidebarView: View {
 
     var body: some View {
         List {
-            Section("Watched") {
+            Section {
                 let visibleActivity = appState.watchedFiles(
                     limit: preferences.watchedFileLimit
                 )
@@ -102,9 +102,11 @@ struct SidebarView: View {
                         watchedFileButton(item)
                     }
                 }
+            } header: {
+                sectionHeader("Watched")
             }
 
-            Section("Recents") {
+            Section {
                 let visibleRecents = appState.recents.prefix(preferences.recentFileLimit)
                 if visibleRecents.isEmpty {
                     Text("No recent files")
@@ -114,6 +116,8 @@ struct SidebarView: View {
                         recentFileButton(item)
                     }
                 }
+            } header: {
+                sectionHeader("Recents")
             }
 
             Section {
@@ -129,7 +133,7 @@ struct SidebarView: View {
                 }
             } header: {
                 HStack {
-                    Text("Projects")
+                    sectionHeader("Projects")
                     Spacer()
                     Button {
                         appState.presentAddProjectPanel()
@@ -161,6 +165,13 @@ struct SidebarView: View {
             .background(.bar)
         }
         .frame(minWidth: 240)
+    }
+
+    private func sectionHeader(_ title: String) -> some View {
+        Text(title)
+            .font(.headline.weight(.semibold))
+            .foregroundStyle(.secondary)
+            .textCase(nil)
     }
 
     private func watchedFileButton(_ item: WatchedActivityItem) -> some View {
