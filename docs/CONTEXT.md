@@ -21,6 +21,7 @@ Primary pain points with existing Quick Look Markdown tools (esp. QLMarkdown):
 | In v1 | Deferred |
 |-------|----------|
 | Single window app (SwiftUI + WKWebView) | Quick Look extension |
+| Persistent menu-bar access to Watched and Recents | Full background agent automation |
 | Open `.md` via Open dialog, drag-drop, `open -a bmd`, CLI `bmd` | Multi-window per file |
 | Sidebar: **Watched activity** + **Recents** + **Projects** | Full Finder replacement |
 | Agents open files with this app → they land on recent stack | YAML/Rmd/Quarto science stack |
@@ -111,6 +112,7 @@ We studied it only to know how QL works and what to *avoid*. bmd is greenfield a
 - [x] Native View menu zoom commands (Command-plus/minus/zero)
 - [x] Stable `/Applications/bmd.app` install/update workflow
 - [x] Set bmd as the Markdown default from Settings or the installer
+- [x] Keep Watched, Recents, Open, Settings, and Quit available from the menu bar
 - [x] Watched projects: surface created/modified files without listing every Markdown file
 - [x] Auto-refresh the current Markdown file after external changes
 - Optional folder grants/bookmarks if App Store sandboxing is added later

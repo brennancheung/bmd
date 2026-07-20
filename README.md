@@ -45,6 +45,8 @@ cycle add friction.
   modified Markdown without listing every file in every project.
 - **Live current document.** The open file automatically reloads when another
   process replaces or modifies it.
+- **Menu-bar access.** Watched and recently opened files remain one click away,
+  even after the main reader window is closed.
 - **Rich offline rendering.** Bundled marked, highlight.js, KaTeX, and Mermaid
   handle GFM-style Markdown, syntax highlighting, math, and diagrams without a
   network connection.
@@ -74,6 +76,11 @@ Finder.
 
 `node_modules` is ignored by default. Hidden folders and application packages
 are always skipped. Additional exact folder names can be added in Settings.
+
+The BMD menu-bar item keeps the five most recent Watched files and five recently
+opened files close at hand. It also provides Open, Add Project, Refresh,
+Settings, and Quit commands. Closing the reader window leaves bmd running in the
+menu bar; use **Quit bmd** when you want to stop the application completely.
 
 ## Requirements
 

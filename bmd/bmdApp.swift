@@ -55,6 +55,14 @@ struct bmdApp: App {
                 .environmentObject(preferences)
                 .preferredColorScheme(preferredColorScheme)
         }
+
+        MenuBarExtra {
+            MenuBarView()
+                .environmentObject(appState)
+                .environmentObject(preferences)
+        } label: {
+            Label("BMD", systemImage: "doc.richtext")
+        }
     }
 
     private var preferredColorScheme: ColorScheme? {
@@ -76,7 +84,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
-        true
+        false
     }
 
     func application(_ application: NSApplication, open urls: [URL]) {

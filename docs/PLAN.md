@@ -31,6 +31,7 @@
 - [x] Disable stale frame restoration and keep windows on-screen across monitor changes
 - [x] Install every scheme build to a stable `/Applications/bmd.app`
 - [x] Register or select bmd as the macOS default Markdown viewer
+- [x] Add persistent menu-bar access to Watched, Recents, Open, Settings, and Quit
 
 ## Watched-folder workflow
 
