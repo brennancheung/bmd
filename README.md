@@ -48,18 +48,19 @@ understanding what is in them.
 Add the folders where your agents work. When a Markdown file is created or
 updated, it appears in **Updates**—no trip through Finder required.
 
-### Switch without searching
+### Switch without losing your place
 
-Keep active documents in a stable **Open** list where clicking never moves the
-row you just used. Jump directly to the first nine positions with `⌘1` through
-`⌘9`; the shortcut hints appear over the right side of the rows only while you
-hold Command. Move through adjacent Open documents with `⌃Tab`, or move Back and
-Forward through reading history. When you vaguely remember a filename, press
-`⌃P` to search every Markdown file in the current project or `⌃O` to search
-across all added projects. Results favor filename and word-boundary matches, so
-short fragments such as `rnd show` can find `rendering-showcase.md` without an
-exact name or path. Search stays keyboard-friendly: use the arrow keys or the
-Vim-style `⌃J` and `⌃K` bindings to move, Return to open, and Escape to close.
+Keep active documents in a stable **Open** list where selecting a document never
+moves its row. New documents append to the bottom, so the positions you learn
+stay reliable while you work.
+
+### Fast and efficient search
+
+When you vaguely remember a filename, search the current project with `⌃P` or
+all added projects with `⌃O`. Results include Markdown files you have not opened
+before and favor filename, word-boundary, and consecutive-character matches.
+Short fragments such as `rnd show` can find `rendering-showcase.md` without an
+exact name or path.
 
 <p align="center">
   <img src="assets/bmd-project-search.png" alt="Project-scoped fuzzy search in bmd with highlighted filename matches and keyboard navigation hints">
@@ -68,6 +69,25 @@ Vim-style `⌃J` and `⌃K` bindings to move, Return to open, and Escape to clos
 <p align="center">
   <sub>The scope stays visible, matched characters stand out, and navigation stays on the keyboard.</sub>
 </p>
+
+### Keyboard-first navigation
+
+Common actions stay on the keyboard. Vim-style Control bindings keep search
+navigation on the home row, while stable positional shortcuts make frequently
+used documents predictable.
+
+| Action | Shortcut |
+|---|---|
+| Search the active document's project | `⌃P` |
+| Search all added projects | `⌃O` |
+| Move through search results | `↑` / `↓` or `⌃K` / `⌃J` |
+| Move through results by page | `Page Up` / `Page Down` |
+| Jump to the first or last result | `⌘↑` / `⌘↓` |
+| Open the selected result | `Return` |
+| Close search | `Escape` |
+| Open stable positions one through nine | `⌘1` through `⌘9` |
+| Move to the previous or next Open document | `⌃⇧Tab` / `⌃Tab` |
+| Move Back or Forward through reading history | `⌘[` / `⌘]` |
 
 ### Follow work as it changes
 
@@ -172,30 +192,17 @@ Opening a document adds it to **Open** without moving documents that are already
 there. If the document belongs to an added project, bmd also keeps it under that
 project for location-oriented navigation.
 
-## How the sidebar works
+## Projects and watched folders
 
-- **Open** is a stable working set. Selecting a document changes its highlight,
-  not its row position. New documents append to the bottom, and no document is
-  removed automatically. Hold Command to reveal `⌘1` through `⌘9` as temporary
-  trailing overlays. Documents can be pinned, moved explicitly, or closed.
-- **Updates** shows new agent-created or agent-modified Markdown. A changed Open
-  document receives a blue dot in place instead of appearing twice. Opening the
-  document acknowledges that update; another on-disk change brings the dot back.
-- **Projects** remembers the documents you opened inside each project without
-  turning the sidebar into another enormous file tree. Project actions can open
-  a Markdown-only file picker or reveal the project root in Finder.
-
-Use `⌘1` through `⌘9` for direct positional access. Use `⌃Tab` and `⌃⇧Tab` to
-move through adjacent Open documents. `⌘[` and `⌘]` move Back and Forward
-through document history. Use `⌃P` to search the active document's project or
-`⌃O` to search all added projects. Search results include Markdown that has not
-previously been opened; use the arrow keys or `⌃J` and `⌃K` to navigate, then
-Return to open. bmd remembers each document's reading position while you switch.
+**Projects** remembers the documents you open inside each project without
+turning the sidebar into another enormous file tree. The search index still
+covers every Markdown file in the project. Project-row actions search that full
+index or reveal the project root in Finder.
 
 Project folders are watched recursively, but `node_modules`, hidden folders,
 and application packages are skipped. Additional folder names can be ignored
-from Settings. Right-click any file to copy its complete path or reveal it in
-Finder.
+from Settings. Right-click any visible file to copy its complete path or reveal
+it in Finder.
 
 ## Built for macOS
 
