@@ -26,6 +26,9 @@
 		B4D00000000000000000001E /* ModifierKeyObserver.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4D00000000000000000001F /* ModifierKeyObserver.swift */; };
 		B4D000000000000000000020 /* FuzzyMatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4D000000000000000000021 /* FuzzyMatcher.swift */; };
 		B4D000000000000000000022 /* QuickSwitcherView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4D000000000000000000023 /* QuickSwitcherView.swift */; };
+		B4D000000000000000000024 /* IgnoreRules.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4D000000000000000000025 /* IgnoreRules.swift */; };
+		B4D000000000000000000026 /* HistoryShortcut.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4D000000000000000000027 /* HistoryShortcut.swift */; };
+		B4D000000000000000000028 /* EditorState.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4D000000000000000000029 /* EditorState.swift */; };
 		35B57B161C744602B42DEBB8 /* viewer in Resources */ = {isa = PBXBuildFile; fileRef = E22FBBDE87374F42A3C940FB /* viewer */; };
 /* End PBXBuildFile section */
 
@@ -59,6 +62,9 @@
 		B4D00000000000000000001F /* ModifierKeyObserver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModifierKeyObserver.swift; sourceTree = "<group>"; };
 		B4D000000000000000000021 /* FuzzyMatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FuzzyMatcher.swift; sourceTree = "<group>"; };
 		B4D000000000000000000023 /* QuickSwitcherView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickSwitcherView.swift; sourceTree = "<group>"; };
+		B4D000000000000000000025 /* IgnoreRules.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IgnoreRules.swift; sourceTree = "<group>"; };
+		B4D000000000000000000027 /* HistoryShortcut.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryShortcut.swift; sourceTree = "<group>"; };
+		B4D000000000000000000029 /* EditorState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorState.swift; sourceTree = "<group>"; };
 		A10000000000000000000006 /* bmd.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = bmd.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		16457A4A05BD453DA86E0833 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		CC0FF0A58B5E4455B8F33BC5 /* bmd.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = bmd.entitlements; sourceTree = "<group>"; };
@@ -114,6 +120,9 @@
 				B4D00000000000000000001F /* ModifierKeyObserver.swift */,
 				B4D000000000000000000021 /* FuzzyMatcher.swift */,
 				B4D000000000000000000023 /* QuickSwitcherView.swift */,
+				B4D000000000000000000025 /* IgnoreRules.swift */,
+				B4D000000000000000000027 /* HistoryShortcut.swift */,
+				B4D000000000000000000029 /* EditorState.swift */,
 				B4D000000000000000000017 /* Assets.xcassets */,
 				16457A4A05BD453DA86E0833 /* Info.plist */,
 				CC0FF0A58B5E4455B8F33BC5 /* bmd.entitlements */,
@@ -240,6 +249,9 @@
 				B4D00000000000000000001E /* ModifierKeyObserver.swift in Sources */,
 				B4D000000000000000000020 /* FuzzyMatcher.swift in Sources */,
 				B4D000000000000000000022 /* QuickSwitcherView.swift in Sources */,
+				B4D000000000000000000024 /* IgnoreRules.swift in Sources */,
+				B4D000000000000000000026 /* HistoryShortcut.swift in Sources */,
+				B4D000000000000000000028 /* EditorState.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

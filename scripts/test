@@ -20,19 +20,31 @@ xcrun swiftc -parse-as-library \
 "${test_output}/LocalAssetResolverTests"
 
 xcrun swiftc -parse-as-library \
-  bmd/AppPreferences.swift tests/AppPreferencesTests.swift \
+  bmd/IgnoreRules.swift bmd/AppPreferences.swift tests/AppPreferencesTests.swift \
   -framework Combine \
   -o "${test_output}/AppPreferencesTests"
 "${test_output}/AppPreferencesTests"
 
 xcrun swiftc -parse-as-library \
-  bmd/AppPreferences.swift bmd/WindowPlacement.swift tests/WindowPlacementTests.swift \
+  bmd/IgnoreRules.swift bmd/AppPreferences.swift bmd/WindowPlacement.swift \
+  tests/WindowPlacementTests.swift \
   -framework AppKit -framework SwiftUI -framework Combine \
   -o "${test_output}/WindowPlacementTests"
 "${test_output}/WindowPlacementTests"
 
 xcrun swiftc -parse-as-library \
-  bmd/FolderWatcher.swift tests/FolderWatcherTests.swift \
+  bmd/HistoryShortcut.swift tests/HistoryShortcutTests.swift \
+  -framework AppKit \
+  -o "${test_output}/HistoryShortcutTests"
+"${test_output}/HistoryShortcutTests"
+
+xcrun swiftc -parse-as-library \
+  bmd/EditorState.swift tests/EditorStateTests.swift \
+  -o "${test_output}/EditorStateTests"
+"${test_output}/EditorStateTests"
+
+xcrun swiftc -parse-as-library \
+  bmd/IgnoreRules.swift bmd/FolderWatcher.swift tests/FolderWatcherTests.swift \
   -framework CoreServices \
   -o "${test_output}/FolderWatcherTests"
 "${test_output}/FolderWatcherTests"
@@ -49,7 +61,8 @@ xcrun swiftc -parse-as-library \
 "${test_output}/FuzzyMatcherTests"
 
 xcrun swiftc -parse-as-library \
-  bmd/RecentStore.swift bmd/FolderWatcher.swift bmd/SidebarFileState.swift \
+  bmd/RecentStore.swift bmd/IgnoreRules.swift bmd/FolderWatcher.swift \
+  bmd/SidebarFileState.swift \
   bmd/FuzzyMatcher.swift bmd/DocumentNavigation.swift \
   bmd/SidebarStateStore.swift \
   tests/SidebarStateTests.swift \
@@ -58,14 +71,17 @@ xcrun swiftc -parse-as-library \
 "${test_output}/SidebarStateTests"
 
 xcrun swiftc -parse-as-library \
-  bmd/RecentStore.swift bmd/FolderWatcher.swift bmd/SidebarFileState.swift \
+  bmd/RecentStore.swift bmd/IgnoreRules.swift bmd/FolderWatcher.swift \
+  bmd/SidebarFileState.swift \
   bmd/FuzzyMatcher.swift bmd/DocumentNavigation.swift tests/DocumentNavigationTests.swift \
   -framework CoreServices \
   -o "${test_output}/DocumentNavigationTests"
 "${test_output}/DocumentNavigationTests"
 
 xcrun swiftc -parse-as-library \
-  bmd/RecentStore.swift bmd/FolderWatcher.swift bmd/CurrentFileWatcher.swift \
+  bmd/RecentStore.swift bmd/IgnoreRules.swift bmd/FolderWatcher.swift \
+  bmd/CurrentFileWatcher.swift \
+  bmd/EditorState.swift \
   bmd/SidebarFileState.swift bmd/FuzzyMatcher.swift bmd/DocumentNavigation.swift \
   bmd/SidebarStateStore.swift bmd/AppPreferences.swift bmd/AppState.swift \
   tests/AppStateIntegrationTests.swift \

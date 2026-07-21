@@ -94,7 +94,7 @@ struct MenuBarView: View {
             appState.goBack()
             showMainWindow()
         } label: {
-            Label("Back in Document History", systemImage: "chevron.left")
+            Label("Back in Document History", systemImage: "chevron.backward")
         }
         .disabled(!appState.canGoBack)
 
@@ -102,7 +102,7 @@ struct MenuBarView: View {
             appState.goForward()
             showMainWindow()
         } label: {
-            Label("Forward in Document History", systemImage: "chevron.right")
+            Label("Forward in Document History", systemImage: "chevron.forward")
         }
         .disabled(!appState.canGoForward)
 

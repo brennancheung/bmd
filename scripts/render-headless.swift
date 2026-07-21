@@ -108,6 +108,9 @@ private func makeInlinedViewer(from directory: URL) throws -> String {
     let katexAutoRender = try read(directory.appendingPathComponent("vendor/katex/auto-render.min.js"))
     let katexStyles = try read(directory.appendingPathComponent("vendor/katex/katex.min.css"))
     let mermaid = try read(directory.appendingPathComponent("vendor/mermaid/mermaid.min.js"))
+    let codeMirror = try read(
+        directory.appendingPathComponent("vendor/codemirror/editor.min.js")
+    )
     let app = try read(directory.appendingPathComponent("app.js"))
 
     let resolvedKatexStyles = katexStyles.replacingOccurrences(
@@ -134,6 +137,10 @@ private func makeInlinedViewer(from directory: URL) throws -> String {
         (
             #"<script src="vendor/mermaid/mermaid.min.js"></script>"#,
             "<script>\(mermaid)</script>"
+        ),
+        (
+            #"<script src="vendor/codemirror/editor.min.js"></script>"#,
+            "<script>\(codeMirror)</script>"
         ),
         (#"<script src="app.js"></script>"#, "<script>\(app)</script>"),
     ]
@@ -317,6 +324,46 @@ private final class HeadlessRenderer: NSObject, WKNavigationDelegate {
                       false
                     );
                     newDocumentReset = window.scrollY <= 1;
+                    const editorSummary = await window.bmdShowEditor(
+                      markdown,
+                      title,
+                      appearance,
+                      true,
+                      "headless-editor-test"
+                    );
+                    const editorElement = document.querySelector(".cm-editor");
+                    const editorBackground = editorElement
+                      ? getComputedStyle(editorElement).backgroundColor
+                      : "";
+                    const expectedEditorBackground = appearance === "dark"
+                      ? "rgb(13, 17, 23)"
+                      : "rgb(255, 255, 255)";
+                    const editorThemeMatches = editorSummary.mode === "editing"
+                      && editorSummary.vimEnabled === true
+                      && editorBackground === expectedEditorBackground;
+                    const firstEditorLine = document.querySelector(".cm-content .cm-line");
+                    const firstLineNumber = Array.from(
+                      document.querySelectorAll(".cm-lineNumbers .cm-gutterElement")
+                    ).find((element) => element.textContent.trim() === "1");
+                    const editorLineNumbersAligned = Boolean(firstEditorLine && firstLineNumber)
+                      && Math.abs(
+                        firstEditorLine.getBoundingClientRect().top
+                          - firstLineNumber.getBoundingClientRect().top
+                      ) <= 1;
+                    const editorFirstLineTop = firstEditorLine
+                      ? firstEditorLine.getBoundingClientRect().top
+                      : -1;
+                    const editorFirstLineNumberTop = firstLineNumber
+                      ? firstLineNumber.getBoundingClientRect().top
+                      : -1;
+                    await window.bmdRender(
+                      markdown,
+                      title,
+                      appearance,
+                      820,
+                      1200,
+                      false
+                    );
                     await document.fonts.ready;
                     await Promise.all(Array.from(document.images).map((image) => {
                       if (image.complete) return Promise.resolve();
@@ -339,6 +386,10 @@ private final class HeadlessRenderer: NSObject, WKNavigationDelegate {
                       horizontalOverflow: root.scrollWidth > root.clientWidth + 1,
                       scrollPreserved,
                       newDocumentReset,
+                      editorThemeMatches,
+                      editorLineNumbersAligned,
+                      editorFirstLineTop,
+                      editorFirstLineNumberTop,
                       tableAligned: !table || !prose ||
                         Math.abs(table.getBoundingClientRect().left - prose.getBoundingClientRect().left) <= 1,
                     };
@@ -366,6 +417,19 @@ private final class HeadlessRenderer: NSObject, WKNavigationDelegate {
                     if (values["tableAligned"] as? NSNumber)?.boolValue == false {
                         throw HeadlessRenderError.invalidLayout(
                             "table does not share the prose left edge"
+                        )
+                    }
+                    if (values["editorThemeMatches"] as? NSNumber)?.boolValue != true {
+                        throw HeadlessRenderError.invalidLayout(
+                            "CodeMirror did not apply the requested appearance"
+                        )
+                    }
+                    if (values["editorLineNumbersAligned"] as? NSNumber)?.boolValue != true {
+                        let lineTop = values["editorFirstLineTop"] ?? "missing"
+                        let numberTop = values["editorFirstLineNumberTop"] ?? "missing"
+                        throw HeadlessRenderError.invalidLayout(
+                            "the first CodeMirror line number is not aligned with its source line "
+                            + "(line: \(lineTop), number: \(numberTop))"
                         )
                     }
                     if verifyScroll,
@@ -446,7 +510,7 @@ private final class HeadlessRenderer: NSObject, WKNavigationDelegate {
             print(url.path)
             Darwin.exit(EXIT_SUCCESS)
         case let .failure(error):
-            let message = "Headless render failed: \(error.localizedDescription)\n"
+            let message = "Headless render failed: \(String(reflecting: error))\n"
             FileHandle.standardError.write(Data(message.utf8))
             Darwin.exit(EXIT_FAILURE)
         }

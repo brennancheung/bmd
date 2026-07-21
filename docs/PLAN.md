@@ -26,6 +26,7 @@
 - [x] Remove document-level horizontal overflow
 - [x] Align tables with the prose start while giving them a wider maximum region
 - [x] Add View → Zoom In/Out/Actual Size and Command-plus/minus/zero
+- [x] Expose history and zoom controls in the toolbar with shortcut help
 - [x] Add visible toolbar access to Settings and appearance controls
 - [x] Add Settings for default zoom, prose/table widths, and semantic window width
 - [x] Make sidebar section-label scale configurable
@@ -34,6 +35,19 @@
 - [x] Install every scheme build to a stable `/Applications/bmd.app`
 - [x] Register or select bmd as the macOS default Markdown viewer
 - [x] Add persistent menu-bar access to Updates, Open, navigation, Settings, and Quit
+
+## Focused editing milestone
+
+- [x] Keep rendered Preview as the default document surface
+- [x] Enter source editing with `E` or the toolbar pencil
+- [x] Save with `⌘S` and save-and-preview with `⌘Return`
+- [x] Bundle CodeMirror and Markdown syntax support for fully offline editing
+- [x] Match the editor to bmd's light and dark appearances
+- [x] Offer opt-in Vim Normal, Insert, and Visual modes with `:w`, `:wq`, and `:q`
+- [x] Retain unsaved buffers while switching documents and mark them in Open
+- [x] Detect external writes and prevent silent overwrites when local edits exist
+- [x] Suppress watcher activity caused by bmd's own atomic saves
+- [x] Warn before quitting with unsaved edit buffers
 
 ## Document navigation milestone
 
@@ -44,6 +58,7 @@
 - [x] Show changed Open documents with an in-place unread indicator
 - [x] Add pin, close, and explicit move controls for Open documents
 - [x] Separate positional Open navigation from Back and Forward document history
+- [x] Use `[` and `]` for history while retaining Command-bracket aliases
 - [x] Add stable `⌘1`–`⌘9` document positions and adjacent Open shortcuts
 - [x] Restore each document's scroll position while switching during a session
 - [x] Add a searchable Quick Switcher across Open, Updates, Projects, and history
@@ -60,7 +75,8 @@
 
 - [x] Persist projects added from the sidebar, Open panel, drop target, or legacy pins
 - [x] Recursively scan `.md`, `.markdown`, `.mdown`, `.mkd`, and `.mdwn` files
-- [x] Ignore `node_modules` by default and support configurable exact-name rules
+- [x] Ignore `node_modules` by default and provide a native glob-pattern list
+- [x] Apply root and nested project `.gitignore` rules during recursive scans
 - [x] Watch projects with recursive FSEvents
 - [x] Show created and modified files in a global Updates section
 - [x] Limit Updates through Settings while keeping Open free of silent eviction
@@ -68,7 +84,7 @@
 - [x] Show project-relative paths in Open and add project-row file actions
 - [x] Auto-refresh the current file after external writes and atomic replacements
 - [x] Provide Copy Path and Reveal in Finder context actions
-- [ ] Add optional glob rules and activity retention controls after real-world use
+- [ ] Add activity retention controls after real-world use
 
 ## File access (sandbox)
 
@@ -121,6 +137,7 @@ human uses Open, Back/Forward, or scoped search to move between documents.
 |-------|--------|-----|
 | UI | SwiftUI | Fast shell |
 | Render surface | WKWebView | Real browser engine |
+| Edit surface | CodeMirror 6 (vendored) | Mature Markdown editing and optional Vim bindings |
 | MD parser | marked 15 (vendored) | Simple, good enough GFM-ish |
 | Code | highlight.js (vendored) | Broad language coverage with no runtime network |
 | Math | KaTeX (vendored) | Fast offline TeX rendering |

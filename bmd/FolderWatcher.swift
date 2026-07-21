@@ -24,7 +24,6 @@ enum MarkdownFolderDiscovery {
     static let supportedExtensions: Set<String> = [
         "md", "markdown", "mdown", "mkd", "mdwn",
     ]
-    static let defaultIgnoredDirectoryNames: Set<String> = ["node_modules"]
 
     static func changedFiles(
         previous: [WatchedMarkdownFile],
@@ -60,58 +59,104 @@ struct MarkdownFolderScanner {
 
     func scan(
         _ root: URL,
-        ignoring ignoredDirectoryNames: Set<String> = MarkdownFolderDiscovery
-            .defaultIgnoredDirectoryNames
+        configuration: MarkdownScanConfiguration = .default
     ) -> [WatchedMarkdownFile] {
         let normalizedRoot = root.standardizedFileURL
         let keys: [URLResourceKey] = [
             .isDirectoryKey,
             .isRegularFileKey,
+            .isPackageKey,
+            .isSymbolicLinkKey,
             .contentModificationDateKey,
             .fileSizeKey,
         ]
-        guard let enumerator = fileManager.enumerator(
-            at: normalizedRoot,
+        var files: [WatchedMarkdownFile] = []
+        scanDirectory(
+            normalizedRoot,
+            relativeDirectory: "",
+            root: normalizedRoot,
+            keys: keys,
+            configuration: configuration,
+            rules: PathIgnoreRules(configuration: configuration),
+            files: &files
+        )
+
+        return files.sorted {
+            $0.relativePath.localizedCaseInsensitiveCompare($1.relativePath)
+                == .orderedAscending
+        }
+    }
+
+    private func scanDirectory(
+        _ directory: URL,
+        relativeDirectory: String,
+        root: URL,
+        keys: [URLResourceKey],
+        configuration: MarkdownScanConfiguration,
+        rules inheritedRules: PathIgnoreRules,
+        files: inout [WatchedMarkdownFile]
+    ) {
+        guard let entries = try? fileManager.contentsOfDirectory(
+            at: directory,
             includingPropertiesForKeys: keys,
-            options: [.skipsHiddenFiles, .skipsPackageDescendants]
+            options: []
         ) else {
-            return []
+            return
         }
 
-        var files: [WatchedMarkdownFile] = []
-        for case let fileURL as URL in enumerator {
-            let values = try? fileURL.resourceValues(forKeys: Set(keys))
-            if values?.isDirectory == true,
-               ignoredDirectoryNames.contains(fileURL.lastPathComponent.lowercased()) {
-                enumerator.skipDescendants()
+        var rules = inheritedRules
+        if configuration.usesGitIgnoreFiles,
+           let gitIgnore = entries.first(where: { $0.lastPathComponent == ".gitignore" }),
+           let contents = try? String(contentsOf: gitIgnore, encoding: .utf8) {
+            rules = rules.addingGitIgnore(contents, in: relativeDirectory)
+        }
+
+        for fileURL in entries {
+            let name = fileURL.lastPathComponent
+            guard !name.hasPrefix(".") else { continue }
+            guard let values = try? fileURL.resourceValues(forKeys: Set(keys)) else {
+                continue
+            }
+            guard values.isSymbolicLink != true else { continue }
+
+            let relativePath = relativeDirectory.isEmpty
+                ? name
+                : relativeDirectory + "/" + name
+            let isDirectory = values.isDirectory == true
+            guard !rules.ignores(relativePath, isDirectory: isDirectory) else {
                 continue
             }
 
-            guard MarkdownFolderDiscovery.supportedExtensions.contains(
-                fileURL.pathExtension.lowercased()
-            ),
-            let values,
-            values.isRegularFile == true else {
+            if isDirectory {
+                guard values.isPackage != true else { continue }
+                scanDirectory(
+                    fileURL,
+                    relativeDirectory: relativePath,
+                    root: root,
+                    keys: keys,
+                    configuration: configuration,
+                    rules: rules,
+                    files: &files
+                )
+                continue
+            }
+
+            guard values.isRegularFile == true,
+                  MarkdownFolderDiscovery.supportedExtensions.contains(
+                    fileURL.pathExtension.lowercased()
+                  ) else {
                 continue
             }
 
             files.append(
                 WatchedMarkdownFile(
-                    rootPath: normalizedRoot.path,
+                    rootPath: root.path,
                     path: fileURL.standardizedFileURL.path,
-                    relativePath: MarkdownFolderDiscovery.relativePath(
-                        for: fileURL,
-                        in: normalizedRoot
-                    ),
+                    relativePath: relativePath,
                     modifiedAt: values.contentModificationDate ?? .distantPast,
                     byteSize: values.fileSize ?? 0
                 )
             )
-        }
-
-        return files.sorted {
-            $0.relativePath.localizedCaseInsensitiveCompare($1.relativePath)
-                == .orderedAscending
         }
     }
 }
@@ -122,7 +167,7 @@ final class MarkdownFolderWatcher {
     private let queue = DispatchQueue(label: "com.brennan.bmd.folder-watcher")
     private let scanner: MarkdownFolderScanner
     private var roots: [URL] = []
-    private var ignoredDirectoryNames = MarkdownFolderDiscovery.defaultIgnoredDirectoryNames
+    private var configuration = MarkdownScanConfiguration.default
     private var previousFilesByRoot: [String: [WatchedMarkdownFile]] = [:]
     private var stream: FSEventStreamRef?
 
@@ -136,8 +181,7 @@ final class MarkdownFolderWatcher {
 
     func watch(
         folders: [URL],
-        ignoring ignoredDirectoryNames: Set<String> = MarkdownFolderDiscovery
-            .defaultIgnoredDirectoryNames
+        configuration: MarkdownScanConfiguration = .default
     ) {
         let normalizedFolders = Array(
             Dictionary(
@@ -150,11 +194,11 @@ final class MarkdownFolderWatcher {
             guard let self else { return }
             stopStream()
             roots = normalizedFolders
-            self.ignoredDirectoryNames = Set(ignoredDirectoryNames.map { $0.lowercased() })
+            self.configuration = configuration
             previousFilesByRoot = [:]
 
             for root in roots {
-                let files = scanner.scan(root, ignoring: self.ignoredDirectoryNames)
+                let files = scanner.scan(root, configuration: configuration)
                 previousFilesByRoot[root.path] = files
                 publish(
                     WatchedFolderUpdate(
@@ -217,7 +261,7 @@ final class MarkdownFolderWatcher {
 
     private func scanAndPublishChanges() {
         for root in roots {
-            let currentFiles = scanner.scan(root, ignoring: ignoredDirectoryNames)
+            let currentFiles = scanner.scan(root, configuration: configuration)
             let previousFiles = previousFilesByRoot[root.path] ?? []
             let changedFiles = MarkdownFolderDiscovery.changedFiles(
                 previous: previousFiles,

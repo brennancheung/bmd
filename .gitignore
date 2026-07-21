@@ -8,4 +8,5 @@ xcuserdata/
 *.xcscmblueprint
 .swiftpm/
 .idea/
+web/node_modules/
 *.app

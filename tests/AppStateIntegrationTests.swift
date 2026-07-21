@@ -69,6 +69,32 @@ enum AppStateIntegrationTests {
         expect(state.updates(limit: 5).isEmpty,
                "a changed open document should not be duplicated under Updates")
 
+        state.beginEditingCurrentDocument()
+        state.updateCurrentEditBuffer("local edit in bmd")
+        expect(state.currentEditIsDirty, "typing should mark the current document as edited")
+        try Data("second agent update".utf8).write(to: opened, options: .atomic)
+        for _ in 0..<60 where !state.currentEditHasConflict {
+            try await Task.sleep(nanoseconds: 50_000_000)
+        }
+        expect(state.currentEditHasConflict,
+               "an external update should conflict with unsaved editor text")
+        expect(state.editorText == "local edit in bmd",
+               "an external conflict must preserve the local edit buffer")
+
+        state.reloadCurrentEditFromDisk()
+        expect(state.editorText == "second agent update",
+               "Reload from Disk should accept the external version")
+        expect(!state.currentEditHasConflict,
+               "Reload from Disk should clear conflict state")
+
+        state.updateCurrentEditBuffer("saved by bmd")
+        state.saveCurrentEdit(returnToPreview: true)
+        let savedContents = try String(contentsOf: opened, encoding: .utf8)
+        expect(savedContents == "saved by bmd",
+               "saving should atomically replace the Markdown file")
+        expect(!state.isEditing, "save and preview should restore the reading surface")
+        expect(!state.currentEditIsDirty, "saving should clear the edited indicator")
+
         let newFile = root.appendingPathComponent("new-agent-output.md")
         try Data("new".utf8).write(to: newFile)
         state.refreshProjects()

@@ -42,9 +42,13 @@ enum AppPreferencesTests {
             )
             expect(preferences.updateFileLimit == 20, "update count should be clamped")
             expect(
-                preferences.ignoredDirectoryNames == ["node_modules", "generated", "cache"],
-                "ignore rules should parse comma and newline separated names case-insensitively"
+                preferences.ignoredGlobPatterns == ["node_modules", "Generated", "CACHE"],
+                "legacy ignore names should migrate into individual list entries"
             )
+            expect(preferences.usesGitIgnoreFiles,
+                   "project .gitignore rules should be enabled by default")
+            expect(!preferences.usesVimEditorBindings,
+                   "Vim editor bindings should be opt-in")
 
             preferences.resetZoom()
             expect(preferences.zoomPercent == 100, "Actual Size should reset zoom to 100%")
@@ -56,6 +60,11 @@ enum AppPreferencesTests {
             preferences.windowWidthPreset = .extraWide
             preferences.appearance = .dark
             preferences.sidebarSectionHeaderScalePercent = 135
+            preferences.ignoredPatterns.append(
+                IgnorePatternPreference(value: "build/**")
+            )
+            preferences.usesGitIgnoreFiles = false
+            preferences.usesVimEditorBindings = true
             expect(
                 store.string(forKey: "bmd.preferences.windowWidthPreset") == "extraWide",
                 "the semantic window width should persist"
@@ -68,6 +77,27 @@ enum AppPreferencesTests {
                 store.double(forKey: "bmd.preferences.sidebarSectionHeaderScalePercent") == 135,
                 "section label scaling should persist"
             )
+            expect(
+                store.stringArray(forKey: "bmd.preferences.ignoredPatterns")
+                    == ["node_modules", "Generated", "CACHE", "build/**"],
+                "ignore patterns should persist as a native list"
+            )
+            expect(
+                store.bool(forKey: "bmd.preferences.usesGitIgnoreFiles") == false,
+                "the .gitignore preference should persist"
+            )
+            expect(store.bool(forKey: "bmd.preferences.usesVimEditorBindings"),
+                   "the Vim editor preference should persist")
+            let reloaded = AppPreferences(store: store)
+            expect(
+                reloaded.ignoredGlobPatterns
+                    == ["node_modules", "Generated", "CACHE", "build/**"],
+                "ignore-pattern rows should survive a preferences reload"
+            )
+            expect(!reloaded.usesGitIgnoreFiles,
+                   "the disabled .gitignore option should survive a preferences reload")
+            expect(reloaded.usesVimEditorBindings,
+                   "Vim bindings should survive a preferences reload")
 
             preferences.resetAll()
             expect(preferences.windowWidthPreset == .wide, "reset should restore Wide")
@@ -82,9 +112,13 @@ enum AppPreferencesTests {
             )
             expect(preferences.updateFileLimit == 5, "reset should show five updates")
             expect(
-                preferences.ignoredDirectoryNames == ["node_modules"],
+                preferences.ignoredGlobPatterns == ["node_modules"],
                 "reset should ignore node_modules by default"
             )
+            expect(preferences.usesGitIgnoreFiles,
+                   "reset should restore project .gitignore support")
+            expect(!preferences.usesVimEditorBindings,
+                   "reset should disable Vim editor bindings")
         }
     }
 
@@ -100,7 +134,7 @@ enum AppPreferencesTests {
                 "the previous 115% default should migrate to 125%"
             )
             expect(
-                store.integer(forKey: "bmd.preferences.defaultsVersion") == 6,
+                store.integer(forKey: "bmd.preferences.defaultsVersion") == 7,
                 "the migration version should persist"
             )
         }

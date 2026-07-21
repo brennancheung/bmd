@@ -6,6 +6,8 @@ struct SettingsView: View {
     @EnvironmentObject private var preferences: AppPreferences
     @State private var defaultAppStatus = ""
     @State private var isSettingDefaultApp = false
+    @State private var selectedIgnorePatternID: UUID?
+    @FocusState private var focusedIgnorePatternID: UUID?
 
     var body: some View {
         Form {
@@ -42,6 +44,16 @@ struct SettingsView: View {
                 )
             }
 
+            Section("Editor") {
+                Toggle(
+                    "Use Vim keybindings",
+                    isOn: $preferences.usesVimEditorBindings
+                )
+                Text("Adds Vim Normal, Insert, and Visual modes. Use :w to save and :wq to save and return to Preview.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
             Section("New Window") {
                 Picker("Width", selection: $preferences.windowWidthPreset) {
                     ForEach(WindowWidthPreset.allCases) { preset in
@@ -53,7 +65,7 @@ struct SettingsView: View {
                     .foregroundStyle(.secondary)
             }
 
-            Section("Sidebar & Watching") {
+            Section("Sidebar") {
                 preferenceSlider(
                     title: "Section label size",
                     value: $preferences.sidebarSectionHeaderScalePercent,
@@ -66,14 +78,58 @@ struct SettingsView: View {
                     value: $preferences.updateFileLimit,
                     range: AppPreferences.Limits.updateFileLimit
                 )
-                LabeledContent("Ignored folders") {
-                    TextField(
-                        "node_modules, generated",
-                        text: $preferences.ignoredDirectoryNamesText
-                    )
-                    .frame(width: 260)
+            }
+
+            Section("File Watching") {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Ignore patterns")
+
+                    List(selection: $selectedIgnorePatternID) {
+                        ForEach($preferences.ignoredPatterns) { $pattern in
+                            TextField("Glob pattern", text: $pattern.value)
+                                .textFieldStyle(.plain)
+                                .focused(
+                                    $focusedIgnorePatternID,
+                                    equals: pattern.id
+                                )
+                                .tag(pattern.id)
+                                .onTapGesture {
+                                    selectedIgnorePatternID = pattern.id
+                                }
+                        }
+                    }
+                    .listStyle(.bordered(alternatesRowBackgrounds: true))
+                    .frame(minHeight: 120, idealHeight: 140, maxHeight: 180)
+                    .onDeleteCommand(perform: removeSelectedIgnorePattern)
+
+                    HStack(spacing: 2) {
+                        Button(action: addIgnorePattern) {
+                            Image(systemName: "plus")
+                                .frame(width: 18, height: 18)
+                        }
+                        .help("Add ignore pattern")
+
+                        Button(action: removeSelectedIgnorePattern) {
+                            Image(systemName: "minus")
+                                .frame(width: 18, height: 18)
+                        }
+                        .disabled(!hasSelectedIgnorePattern)
+                        .help("Remove selected ignore pattern")
+
+                        Spacer()
+                    }
+                    .buttonStyle(.borderless)
                 }
-                Text("Use commas to separate exact folder names. Hidden folders and app packages are always ignored.")
+
+                Text("Patterns without a slash match names anywhere. Use *, **, and ? for glob matching. Hidden items and app packages are always ignored.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                Toggle(
+                    "Use .gitignore files in projects",
+                    isOn: $preferences.usesGitIgnoreFiles
+                )
+                Text("bmd applies rules from the project root and nested .gitignore files while scanning each folder.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -101,13 +157,36 @@ struct SettingsView: View {
         .formStyle(.grouped)
         .frame(
             minWidth: 620,
-            idealWidth: 680,
+            idealWidth: 720,
             maxWidth: .infinity,
             minHeight: 600,
-            idealHeight: 800,
+            idealHeight: 960,
             maxHeight: .infinity
         )
         .padding(.vertical, 12)
+        .onDisappear {
+            preferences.removeEmptyIgnorePatterns()
+        }
+    }
+
+    private var hasSelectedIgnorePattern: Bool {
+        guard let selectedIgnorePatternID else { return false }
+        return preferences.ignoredPatterns.contains { $0.id == selectedIgnorePatternID }
+    }
+
+    private func addIgnorePattern() {
+        let id = preferences.addIgnorePattern()
+        selectedIgnorePatternID = id
+        Task { @MainActor in
+            focusedIgnorePatternID = id
+        }
+    }
+
+    private func removeSelectedIgnorePattern() {
+        guard let selectedIgnorePatternID else { return }
+        preferences.removeIgnorePattern(id: selectedIgnorePatternID)
+        self.selectedIgnorePatternID = nil
+        focusedIgnorePatternID = nil
     }
 
     @ViewBuilder

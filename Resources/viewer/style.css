@@ -83,6 +83,27 @@ body {
   overflow-x: hidden;
 }
 
+html[data-mode="editing"],
+html[data-mode="editing"] body {
+  height: 100%;
+  overflow: hidden;
+}
+
+.editor-surface {
+  position: fixed;
+  inset: 0;
+  min-width: 0;
+  background: var(--bg);
+}
+
+.editor-surface .cm-editor {
+  height: 100%;
+}
+
+.editor-surface .cm-focused {
+  outline: none;
+}
+
 .empty {
   display: flex;
   flex-direction: column;

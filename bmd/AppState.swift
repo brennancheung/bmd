@@ -15,6 +15,7 @@ final class AppState: ObservableObject {
     @Published private(set) var projectFilesByFolder: [String: [BookmarkItem]]
     @Published private(set) var indexedFilesByProject: [String: [WatchedMarkdownFile]]
     @Published private(set) var history: DocumentHistoryState
+    @Published private(set) var editorWorkspace = EditorWorkspaceState()
     @Published var isQuickSwitcherPresented = false
     @Published private(set) var quickSwitcherScope: DocumentSearchScope = .global
 
@@ -22,7 +23,8 @@ final class AppState: ObservableObject {
     private let sidebarStore: SidebarStateStore
     private let folderWatcher: MarkdownFolderWatcher
     private let currentFileWatcher: CurrentMarkdownFileWatcher
-    private var ignoredDirectoryNames = MarkdownFolderDiscovery.defaultIgnoredDirectoryNames
+    private var scanConfiguration = MarkdownScanConfiguration.default
+    private var recentSelfSaves: [String: (text: String, savedAt: Date)] = [:]
 
     private enum HistoryBehavior: Equatable {
         case record
@@ -67,7 +69,10 @@ final class AppState: ObservableObject {
         currentFileWatcher.onChange = { [weak self] snapshot in
             self?.applyCurrentFileChange(snapshot, detectedAt: Date())
         }
-        folderWatcher.watch(folders: projects.map(\.url), ignoring: ignoredDirectoryNames)
+        folderWatcher.watch(
+            folders: projects.map(\.url),
+            configuration: scanConfiguration
+        )
     }
 
     var currentTitle: String {
@@ -80,6 +85,21 @@ final class AppState: ObservableObject {
 
     var canGoBack: Bool { history.canGoBack }
     var canGoForward: Bool { history.canGoForward }
+    var isEditing: Bool { editorWorkspace.mode == .editing }
+    var hasUnsavedEdits: Bool { !editorWorkspace.dirtyPaths.isEmpty }
+    var editorRevision: UInt64 { editorWorkspace.revision }
+    var editorText: String {
+        guard let path = currentFile?.path else { return "" }
+        return editorWorkspace.text(for: path, fallback: markdownText)
+    }
+    var currentEditIsDirty: Bool {
+        guard let path = currentFile?.path else { return false }
+        return editorWorkspace.isDirty(path: path)
+    }
+    var currentEditHasConflict: Bool {
+        guard let path = currentFile?.path else { return false }
+        return editorWorkspace.buffer(for: path)?.hasExternalConflict == true
+    }
     var currentProject: BookmarkItem? {
         guard let currentFile else { return nil }
         return SidebarFileState.containingProject(for: currentFile, projects: projects)
@@ -137,6 +157,10 @@ final class AppState: ObservableObject {
         let isDifferentFile = currentFile?.path != resolved.path
         guard readFile(resolved) else { return }
 
+        if isDifferentFile {
+            editorWorkspace.showPreview()
+        }
+
         let openedAt = Date()
         openDocuments = DocumentNavigation.rememberOpen(
             resolved,
@@ -172,6 +196,69 @@ final class AppState: ObservableObject {
             statusMessage = "Could not open \(item.displayName)"
             closeOpenDocument(item)
         }
+    }
+
+    func beginEditingCurrentDocument() {
+        guard let currentFile else { return }
+        editorWorkspace.beginEditing(
+            path: currentFile.path,
+            diskText: markdownText
+        )
+        statusMessage = nil
+    }
+
+    func updateCurrentEditBuffer(_ text: String) {
+        guard let currentFile, isEditing else { return }
+        editorWorkspace.updateBuffer(
+            path: currentFile.path,
+            text: text,
+            diskText: markdownText
+        )
+    }
+
+    func saveCurrentEdit(returnToPreview: Bool = false, overwriteConflict: Bool = false) {
+        guard let currentFile,
+              let buffer = editorWorkspace.buffer(for: currentFile.path) else {
+            return
+        }
+        guard overwriteConflict || !buffer.hasExternalConflict else {
+            statusMessage = "This file changed on disk. Choose which version to keep before saving."
+            return
+        }
+
+        do {
+            recentSelfSaves[currentFile.path] = (buffer.text, Date())
+            try Data(buffer.text.utf8).write(to: currentFile, options: .atomic)
+            editorWorkspace.markSaved(path: currentFile.path, text: buffer.text)
+            markdownText = buffer.text
+            renderToken &+= 1
+            statusMessage = nil
+            if returnToPreview {
+                editorWorkspace.showPreview()
+            }
+        } catch {
+            recentSelfSaves[currentFile.path] = nil
+            statusMessage = "Could not save \(currentFile.lastPathComponent): \(error.localizedDescription)"
+        }
+    }
+
+    func returnToPreviewIfClean() {
+        guard currentEditIsDirty else {
+            editorWorkspace.showPreview()
+            statusMessage = nil
+            return
+        }
+        statusMessage = "Save the document before returning to Preview."
+    }
+
+    func reloadCurrentEditFromDisk() {
+        guard let currentFile else { return }
+        editorWorkspace.reloadFromDisk(path: currentFile.path, text: markdownText)
+        statusMessage = nil
+    }
+
+    func hasUnsavedEdit(for path: String) -> Bool {
+        editorWorkspace.isDirty(path: path)
     }
 
     func openBookmark(_ item: BookmarkItem) {
@@ -346,31 +433,33 @@ final class AppState: ObservableObject {
         folderWatcher.refresh()
     }
 
-    func updateWatchConfiguration(ignoredDirectoryNames: Set<String>) {
-        let normalized = Set(ignoredDirectoryNames.map { $0.lowercased() })
-        guard normalized != self.ignoredDirectoryNames else { return }
-        self.ignoredDirectoryNames = normalized
+    func updateWatchConfiguration(
+        ignoredPatterns: [String],
+        usesGitIgnoreFiles: Bool
+    ) {
+        let configuration = MarkdownScanConfiguration(
+            customPatterns: ignoredPatterns,
+            usesGitIgnoreFiles: usesGitIgnoreFiles
+        )
+        guard configuration != scanConfiguration else { return }
+        scanConfiguration = configuration
         restartFolderWatcher()
     }
 
     private func restartFolderWatcher() {
         folderWatcher.watch(
             folders: projects.map(\.url),
-            ignoring: ignoredDirectoryNames
+            configuration: scanConfiguration
         )
     }
 
     @discardableResult
     private func readFile(_ url: URL) -> Bool {
         do {
-            let data = try Data(contentsOf: url)
-            guard let text = String(data: data, encoding: .utf8)
-                    ?? String(data: data, encoding: .isoLatin1) else {
-                statusMessage = "Could not decode \(url.lastPathComponent)"
-                return false
-            }
+            let text = try readText(from: url)
             currentFile = url
             markdownText = text
+            _ = editorWorkspace.observeDiskText(path: url.path, text: text)
             renderToken &+= 1
             statusMessage = nil
             return true
@@ -385,14 +474,17 @@ final class AppState: ObservableObject {
             return
         }
         indexedFilesByProject[update.rootPath] = update.files
+        let externallyChangedFiles = update.changedFiles.filter {
+            !isRecentSelfSave($0.url, detectedAt: detectedAt)
+        }
         guard
             !update.isInitial,
-            !update.changedFiles.isEmpty else {
+            !externallyChangedFiles.isEmpty else {
             return
         }
         watchedActivity = SidebarFileState.mergeActivity(
             existing: watchedActivity,
-            changedFiles: update.changedFiles,
+            changedFiles: externallyChangedFiles,
             detectedAt: detectedAt
         )
         sidebarStore.saveActivity(watchedActivity)
@@ -403,6 +495,16 @@ final class AppState: ObservableObject {
         detectedAt: Date
     ) {
         guard currentFile?.path == snapshot.path else { return }
+        guard let text = try? readText(from: snapshot.url) else {
+            statusMessage = "Could not reload \(snapshot.url.lastPathComponent)"
+            return
+        }
+        if isRecentSelfSave(snapshot.url, detectedAt: detectedAt, knownText: text) {
+            markdownText = text
+            _ = editorWorkspace.observeDiskText(path: snapshot.path, text: text)
+            renderToken &+= 1
+            return
+        }
         let project = SidebarFileState.containingProject(
             for: snapshot.url,
             projects: projects
@@ -413,7 +515,10 @@ final class AppState: ObservableObject {
             modifiedAt: snapshot.modifiedAt,
             detectedAt: detectedAt
         )
-        _ = readFile(snapshot.url)
+        markdownText = text
+        _ = editorWorkspace.observeDiskText(path: snapshot.path, text: text)
+        renderToken &+= 1
+        statusMessage = nil
     }
 
     private func recordFileUpdate(
@@ -457,6 +562,29 @@ final class AppState: ObservableObject {
         }
         history = nextHistory
         sidebarStore.saveHistory(history)
+    }
+
+    private func readText(from url: URL) throws -> String {
+        let data = try Data(contentsOf: url)
+        if let text = String(data: data, encoding: .utf8)
+            ?? String(data: data, encoding: .isoLatin1) {
+            return text
+        }
+        throw CocoaError(.fileReadInapplicableStringEncoding)
+    }
+
+    private func isRecentSelfSave(
+        _ file: URL,
+        detectedAt: Date,
+        knownText: String? = nil
+    ) -> Bool {
+        let path = file.standardizedFileURL.path
+        recentSelfSaves = recentSelfSaves.filter {
+            detectedAt.timeIntervalSince($0.value.savedAt) < 5
+        }
+        guard let saved = recentSelfSaves[path] else { return false }
+        let diskText = knownText ?? (try? readText(from: file))
+        return diskText == saved.text
     }
 
 }

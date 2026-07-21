@@ -17,22 +17,50 @@ struct ContentView: View {
             MainWindowPlacementView(widthPreset: preferences.windowWidthPreset)
         }
         .toolbar {
-            ToolbarItemGroup(placement: .primaryAction) {
+            ToolbarItemGroup(placement: .navigation) {
                 Button {
                     appState.goBack()
                 } label: {
-                    Label("Back in Document History", systemImage: "chevron.left")
+                    Label("Back in Document History", systemImage: "chevron.backward")
                 }
                 .disabled(!appState.canGoBack)
-                .help("Back in Document History (⌘[)")
+                .help("Back in Document History ([ or ⌘[)")
 
                 Button {
                     appState.goForward()
                 } label: {
-                    Label("Forward in Document History", systemImage: "chevron.right")
+                    Label("Forward in Document History", systemImage: "chevron.forward")
                 }
                 .disabled(!appState.canGoForward)
-                .help("Forward in Document History (⌘])")
+                .help("Forward in Document History (] or ⌘])")
+            }
+
+            ToolbarItemGroup(placement: .primaryAction) {
+                if let currentFile = appState.currentFile {
+                    if appState.isEditing {
+                        Button {
+                            appState.saveCurrentEdit()
+                        } label: {
+                            Label("Save", systemImage: "square.and.arrow.down")
+                        }
+                        .disabled(!appState.currentEditIsDirty)
+                        .help("Save \(currentFile.lastPathComponent) (⌘S)")
+
+                        Button {
+                            appState.saveCurrentEdit(returnToPreview: true)
+                        } label: {
+                            Label("Save and Return to Preview", systemImage: "eye")
+                        }
+                        .help("Save and Return to Preview (⌘Return)")
+                    } else {
+                        Button {
+                            appState.beginEditingCurrentDocument()
+                        } label: {
+                            Label("Edit Markdown", systemImage: "pencil")
+                        }
+                        .help("Edit Markdown (E)")
+                    }
+                }
 
                 Button {
                     appState.showGlobalSearch()
@@ -40,6 +68,28 @@ struct ContentView: View {
                     Label("Search All Markdown", systemImage: "doc.text.magnifyingglass")
                 }
                 .help("Search All Markdown (⌃O)")
+
+                Button {
+                    preferences.zoomOut()
+                } label: {
+                    Label("Zoom Out", systemImage: "minus.magnifyingglass")
+                }
+                .disabled(
+                    preferences.zoomPercent
+                        <= AppPreferences.Limits.zoomPercent.lowerBound
+                )
+                .help("Zoom Out (⌘−)")
+
+                Button {
+                    preferences.zoomIn()
+                } label: {
+                    Label("Zoom In", systemImage: "plus.magnifyingglass")
+                }
+                .disabled(
+                    preferences.zoomPercent
+                        >= AppPreferences.Limits.zoomPercent.upperBound
+                )
+                .help("Zoom In (⌘+)")
 
                 Menu {
                     ForEach(AppearancePreference.allCases) { appearance in
@@ -70,17 +120,19 @@ struct ContentView: View {
                 delegate.drainPending(into: appState)
             }
             appState.updateWatchConfiguration(
-                ignoredDirectoryNames: preferences.ignoredDirectoryNames
+                ignoredPatterns: preferences.ignoredGlobPatterns,
+                usesGitIgnoreFiles: preferences.usesGitIgnoreFiles
             )
         }
-        .task(id: preferences.ignoredDirectoryNamesText) {
+        .task(id: preferences.watchConfigurationID) {
             do {
                 try await Task.sleep(nanoseconds: 300_000_000)
             } catch {
                 return
             }
             appState.updateWatchConfiguration(
-                ignoredDirectoryNames: preferences.ignoredDirectoryNames
+                ignoredPatterns: preferences.ignoredGlobPatterns,
+                usesGitIgnoreFiles: preferences.usesGitIgnoreFiles
             )
         }
         .onDrop(of: [.fileURL], isTargeted: nil) { providers in
@@ -90,6 +142,9 @@ struct ContentView: View {
             QuickSwitcherView()
                 .environmentObject(appState)
                 .frame(minWidth: 720, minHeight: 520)
+        }
+        .background {
+            WindowDocumentEditedView(isEdited: appState.currentEditIsDirty)
         }
     }
 
@@ -261,6 +316,7 @@ struct SidebarView: View {
     ) -> some View {
         let isCurrent = appState.currentFile?.path == item.path
         let hasUpdate = appState.unreadUpdate(for: item.path) != nil
+        let hasUnsavedEdit = appState.hasUnsavedEdit(for: item.path)
         let showsShortcut = modifierKeys.isCommandPressed && position <= 9
         return Button {
             appState.openDocument(item)
@@ -286,6 +342,12 @@ struct SidebarView: View {
                         .truncationMode(.middle)
                 }
                 Spacer(minLength: 4)
+                if hasUnsavedEdit {
+                    Image(systemName: "pencil.circle.fill")
+                        .foregroundStyle(.orange)
+                        .accessibilityLabel("Unsaved edit")
+                        .help("Unsaved edit retained in bmd")
+                }
                 if hasUpdate {
                     Circle()
                         .fill(Color.accentColor)
@@ -451,6 +513,48 @@ struct DetailView: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            if appState.isEditing {
+                HStack(spacing: 6) {
+                    Image(systemName: "pencil")
+                    Text("Editing Markdown")
+                        .fontWeight(.semibold)
+                    if appState.currentEditIsDirty {
+                        Text("Unsaved")
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    if preferences.usesVimEditorBindings {
+                        Text("Vim")
+                            .font(.caption.monospaced())
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(.quaternary, in: Capsule())
+                    }
+                }
+                .font(.callout)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 7)
+                .background(.bar)
+            }
+
+            if appState.currentEditHasConflict {
+                HStack(spacing: 10) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.orange)
+                    Text("This file changed on disk while you have unsaved edits.")
+                    Spacer()
+                    Button("Reload from Disk") {
+                        appState.reloadCurrentEditFromDisk()
+                    }
+                    Button("Overwrite Disk") {
+                        appState.saveCurrentEdit(overwriteConflict: true)
+                    }
+                }
+                .font(.callout)
+                .padding(8)
+                .background(Color.orange.opacity(0.12))
+            }
+
             if let status = appState.statusMessage {
                 Text(status)
                     .font(.callout)
@@ -461,14 +565,30 @@ struct DetailView: View {
             }
 
             MarkdownWebView(
-                markdown: appState.markdownText,
+                markdown: appState.isEditing ? appState.editorText : appState.markdownText,
                 title: appState.currentTitle,
                 documentIdentifier: appState.currentFile?.standardizedFileURL.path,
                 baseDirectory: appState.baseDirectory,
-                renderToken: appState.renderToken,
+                presentationMode: appState.isEditing ? .editing : .preview,
+                contentToken: appState.isEditing
+                    ? appState.editorRevision
+                    : appState.renderToken,
+                usesVimBindings: preferences.usesVimEditorBindings,
                 zoomScale: preferences.zoomScale,
                 proseWidth: preferences.proseWidth,
-                tableWidth: preferences.tableWidth
+                tableWidth: preferences.tableWidth,
+                onEditorTextChange: { text in
+                    appState.updateCurrentEditBuffer(text)
+                },
+                onSaveRequest: {
+                    appState.saveCurrentEdit()
+                },
+                onSaveAndPreviewRequest: {
+                    appState.saveCurrentEdit(returnToPreview: true)
+                },
+                onPreviewIfCleanRequest: {
+                    appState.returnToPreviewIfClean()
+                }
             )
             .frame(
                 minWidth: 320,
@@ -478,6 +598,20 @@ struct DetailView: View {
             )
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
+private struct WindowDocumentEditedView: NSViewRepresentable {
+    let isEdited: Bool
+
+    func makeNSView(context: Context) -> NSView {
+        NSView(frame: .zero)
+    }
+
+    func updateNSView(_ view: NSView, context: Context) {
+        DispatchQueue.main.async {
+            view.window?.isDocumentEdited = isEdited
+        }
     }
 }
 

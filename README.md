@@ -87,7 +87,11 @@ used documents predictable.
 | Close search | `Escape` |
 | Open stable positions one through nine | `⌘1` through `⌘9` |
 | Move to the next or previous Open document | `Tab` / `⇧Tab` |
-| Move Back or Forward through reading history | `⌘[` / `⌘]` |
+| Move Back or Forward through reading history | `[` / `]` (`⌘[` / `⌘]` also work) |
+| Zoom out, in, or reset the reading view | `⌘−` / `⌘+` / `⌘0` |
+| Edit the current Markdown source | `E` |
+| Save while editing | `⌘S` |
+| Save and return to Preview | `⌘Return` |
 
 ### Follow work as it changes
 
@@ -95,6 +99,26 @@ Keep a document open while an agent updates it. bmd notices changes and refreshe
 the page automatically without losing your scroll position, so you can keep
 reading instead of reopening the file or finding your place again. A blue dot
 marks an Open document that changed since you last opened it.
+
+### Make a quick correction in place
+
+Press `E` when a document needs a small correction. bmd replaces the reading
+surface with a syntax-highlighted Markdown editor, then returns to the rendered
+document with `⌘Return`. The editor follows the same light or dark appearance as
+the reader. Optional Vim keybindings add Normal, Insert, and Visual modes plus
+`:w`, `:wq`, and `:q` without turning the main interface into an IDE.
+
+Agent updates remain safe while editing. A clean editor refreshes from disk. If
+the file changes while local edits are unsaved, bmd keeps both versions and asks
+whether to reload the agent's version or explicitly overwrite it.
+
+<p align="center">
+  <img src="assets/bmd-editor.webp" width="100%" alt="bmd editing Markdown source with line numbers, syntax highlighting, an unsaved indicator, and optional Vim keybindings">
+</p>
+
+<p align="center">
+  <sub>Editing stays one keystroke away, with syntax highlighting, light and dark themes, and optional Vim navigation.</sub>
+</p>
 
 ### Open it ready to read
 
@@ -200,9 +224,10 @@ covers every Markdown file in the project. Project-row actions search that full
 index or reveal the project root in Finder.
 
 Project folders are watched recursively, but `node_modules`, hidden folders,
-and application packages are skipped. Additional folder names can be ignored
-from Settings. Right-click any visible file to copy its complete path or reveal
-it in Finder.
+and application packages are skipped. Settings provides a native ignore-pattern
+list with glob support, and project `.gitignore` rules are applied from both the
+project root and nested folders. Right-click any visible file to copy its
+complete path or reveal it in Finder.
 
 ## Built for macOS
 
@@ -211,6 +236,10 @@ the standard zoom shortcuts, system light and dark appearances, project-aware
 file menus, and a menu-bar companion for opening Updates and active documents
 without first finding the main window.
 
+Editing is intentionally a mode rather than a permanent pane. Unsaved documents
+use the standard macOS edited indicator, and their stable Open rows retain a
+small edit marker when you switch away.
+
 Closing the reader window leaves bmd available in the menu bar. Choose
 **Quit bmd** when you want to stop the application completely.
 
@@ -218,11 +247,12 @@ Closing the reader window leaves bmd available in the menu bar. Choose
 <summary><strong>Architecture and local file access</strong></summary>
 
 bmd uses SwiftUI for its window, navigation, settings, commands, and persistent
-state. The navigation model is implemented as testable pure state transitions,
-while `AppState` applies filesystem and persistence effects. A `WKWebView`
-reading surface uses bundled copies of marked,
-highlight.js, KaTeX, and Mermaid to render documents without a network
-connection.
+state. The navigation and editing models are implemented as testable pure state
+transitions, while `AppState` applies filesystem and persistence effects. A
+`WKWebView` reading surface uses bundled copies of marked, highlight.js, KaTeX,
+and Mermaid to render documents without a network connection. The same local
+surface hosts a bundled CodeMirror editor with optional Vim keybindings, so
+editing also works offline and follows the active appearance.
 
 The direct-distribution build is intentionally not App Sandboxed because a
 file-only Powerbox grant cannot read sibling images referenced by a Markdown
@@ -249,6 +279,13 @@ Run the native, state, watcher, asset-containment, and rendering checks:
 
 ```bash
 ./scripts/test
+```
+
+When changing the editor's JavaScript dependencies or integration layer,
+rebuild the checked-in offline bundle:
+
+```bash
+./scripts/build-editor
 ```
 
 Useful project references:

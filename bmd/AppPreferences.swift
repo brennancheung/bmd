@@ -41,6 +41,16 @@ enum AppearancePreference: String, CaseIterable, Identifiable {
     }
 }
 
+struct IgnorePatternPreference: Identifiable, Equatable {
+    let id: UUID
+    var value: String
+
+    init(id: UUID = UUID(), value: String) {
+        self.id = id
+        self.value = value
+    }
+}
+
 @MainActor
 final class AppPreferences: ObservableObject {
     enum Defaults {
@@ -51,7 +61,9 @@ final class AppPreferences: ObservableObject {
         static let tableWidth = 1200.0
         static let sidebarSectionHeaderScalePercent = 140.0
         static let updateFileLimit = 5
-        static let ignoredDirectoryNamesText = "node_modules"
+        static let ignoredPatterns = ["node_modules"]
+        static let usesGitIgnoreFiles = true
+        static let usesVimEditorBindings = false
     }
 
     enum Limits {
@@ -77,10 +89,14 @@ final class AppPreferences: ObservableObject {
             "bmd.preferences.sidebarSectionHeaderScalePercent"
         static let updateFileLimit = "bmd.preferences.updateFileLimit"
         static let legacyWatchedFileLimit = "bmd.preferences.watchedFileLimit"
-        static let ignoredDirectoryNamesText = "bmd.preferences.ignoredDirectoryNames"
+        static let ignoredPatterns = "bmd.preferences.ignoredPatterns"
+        static let legacyIgnoredDirectoryNamesText =
+            "bmd.preferences.ignoredDirectoryNames"
+        static let usesGitIgnoreFiles = "bmd.preferences.usesGitIgnoreFiles"
+        static let usesVimEditorBindings = "bmd.preferences.usesVimEditorBindings"
     }
 
-    private static let currentDefaultsVersion = 6
+    private static let currentDefaultsVersion = 7
     private static let zoomDefaultsVersion = 2
     private static let sidebarHeaderDefaultsVersion = 6
     private let store: UserDefaults
@@ -118,20 +134,76 @@ final class AppPreferences: ObservableObject {
         didSet { store.set(updateFileLimit, forKey: Key.updateFileLimit) }
     }
 
-    @Published var ignoredDirectoryNamesText: String {
-        didSet { store.set(ignoredDirectoryNamesText, forKey: Key.ignoredDirectoryNamesText) }
+    @Published var ignoredPatterns: [IgnorePatternPreference] {
+        didSet {
+            store.set(ignoredPatterns.map(\.value), forKey: Key.ignoredPatterns)
+        }
+    }
+
+    @Published var usesGitIgnoreFiles: Bool {
+        didSet { store.set(usesGitIgnoreFiles, forKey: Key.usesGitIgnoreFiles) }
+    }
+
+    @Published var usesVimEditorBindings: Bool {
+        didSet { store.set(usesVimEditorBindings, forKey: Key.usesVimEditorBindings) }
     }
 
     var zoomScale: Double { zoomPercent / 100 }
     var sidebarSectionHeaderScale: Double { sidebarSectionHeaderScalePercent / 100 }
 
-    var ignoredDirectoryNames: Set<String> {
-        Set(
-            ignoredDirectoryNamesText
+    var ignoredGlobPatterns: [String] {
+        MarkdownScanConfiguration(
+            customPatterns: ignoredPatterns.map(\.value),
+            usesGitIgnoreFiles: usesGitIgnoreFiles
+        ).customPatterns
+    }
+
+    var watchConfigurationID: String {
+        ([usesGitIgnoreFiles ? "gitignore:on" : "gitignore:off"] + ignoredGlobPatterns)
+            .joined(separator: "\u{1f}")
+    }
+
+    @discardableResult
+    func addIgnorePattern() -> UUID {
+        let item = IgnorePatternPreference(value: "")
+        ignoredPatterns.append(item)
+        return item.id
+    }
+
+    func removeIgnorePattern(id: UUID) {
+        ignoredPatterns.removeAll { $0.id == id }
+    }
+
+    func removeEmptyIgnorePatterns() {
+        ignoredPatterns.removeAll {
+            $0.value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        }
+    }
+
+    private static func storedIgnorePatterns(in store: UserDefaults) -> [String] {
+        if store.object(forKey: Key.ignoredPatterns) != nil {
+            return store.stringArray(forKey: Key.ignoredPatterns) ?? []
+        }
+        if let legacy = store.string(forKey: Key.legacyIgnoredDirectoryNamesText) {
+            return legacy
                 .split(whereSeparator: { $0 == "," || $0.isNewline })
-                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() }
+                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
                 .filter { !$0.isEmpty }
-        )
+        }
+        return Defaults.ignoredPatterns
+    }
+
+    private static func storedGitIgnorePreference(in store: UserDefaults) -> Bool {
+        guard store.object(forKey: Key.usesGitIgnoreFiles) != nil else {
+            return Defaults.usesGitIgnoreFiles
+        }
+        return store.bool(forKey: Key.usesGitIgnoreFiles)
+    }
+
+    private static func ignorePatternPreferences(
+        from values: [String]
+    ) -> [IgnorePatternPreference] {
+        values.map { IgnorePatternPreference(value: $0) }
     }
 
     init(store: UserDefaults = .standard) {
@@ -188,11 +260,19 @@ final class AppPreferences: ObservableObject {
             fallback: Defaults.updateFileLimit,
             range: Limits.updateFileLimit
         )
-        ignoredDirectoryNamesText = store.string(forKey: Key.ignoredDirectoryNamesText)
-            ?? Defaults.ignoredDirectoryNamesText
+        ignoredPatterns = Self.ignorePatternPreferences(
+            from: Self.storedIgnorePatterns(in: store)
+        )
+        usesGitIgnoreFiles = Self.storedGitIgnorePreference(in: store)
+        usesVimEditorBindings = store.object(forKey: Key.usesVimEditorBindings) == nil
+            ? Defaults.usesVimEditorBindings
+            : store.bool(forKey: Key.usesVimEditorBindings)
 
         store.set(zoomPercent, forKey: Key.zoomPercent)
         store.set(updateFileLimit, forKey: Key.updateFileLimit)
+        store.set(ignoredPatterns.map(\.value), forKey: Key.ignoredPatterns)
+        store.set(usesGitIgnoreFiles, forKey: Key.usesGitIgnoreFiles)
+        store.set(usesVimEditorBindings, forKey: Key.usesVimEditorBindings)
         store.set(Self.currentDefaultsVersion, forKey: Key.defaultsVersion)
     }
 
@@ -216,7 +296,9 @@ final class AppPreferences: ObservableObject {
         tableWidth = Defaults.tableWidth
         sidebarSectionHeaderScalePercent = Defaults.sidebarSectionHeaderScalePercent
         updateFileLimit = Defaults.updateFileLimit
-        ignoredDirectoryNamesText = Defaults.ignoredDirectoryNamesText
+        ignoredPatterns = Self.ignorePatternPreferences(from: Defaults.ignoredPatterns)
+        usesGitIgnoreFiles = Defaults.usesGitIgnoreFiles
+        usesVimEditorBindings = Defaults.usesVimEditorBindings
     }
 
     private func setZoom(_ value: Double) {

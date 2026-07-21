@@ -1,6 +1,32 @@
-/* global hljs, marked, mermaid, renderMathInElement */
+/* global BMDEditorController, hljs, marked, mermaid, renderMathInElement */
 (function () {
   "use strict";
+
+  var editorController = null;
+  var editorDocumentIdentifier = null;
+  var editorPositions = {};
+
+  function sendEditorMessage(type, text) {
+    var handler = window.webkit && window.webkit.messageHandlers
+      ? window.webkit.messageHandlers.bmdEditor
+      : null;
+    if (!handler || typeof handler.postMessage !== "function") return;
+    handler.postMessage({
+      type: type,
+      text: text || "",
+      documentIdentifier: editorDocumentIdentifier || ""
+    });
+  }
+
+  function showSurface(mode) {
+    var content = document.getElementById("content");
+    var editor = document.getElementById("editor");
+    var empty = document.getElementById("empty");
+    document.documentElement.dataset.mode = mode;
+    if (empty) empty.hidden = true;
+    if (content) content.hidden = mode !== "preview";
+    if (editor) editor.hidden = mode !== "editing";
+  }
 
   function configureMarked() {
     if (typeof marked === "undefined") return;
@@ -175,6 +201,7 @@
     configureMarked();
     setAppearance(appearance);
     setLayoutPreferences(proseWidth, tableWidth);
+    document.documentElement.dataset.mode = "preview";
 
     var empty = document.getElementById("empty");
     var content = document.getElementById("content");
@@ -185,6 +212,8 @@
     if (!src) {
       if (empty) empty.hidden = false;
       content.hidden = true;
+      var editor = document.getElementById("editor");
+      if (editor) editor.hidden = true;
       content.innerHTML = "";
       document.title = "bmd";
       return {
@@ -199,6 +228,8 @@
 
     if (empty) empty.hidden = true;
     content.hidden = false;
+    var editorSurface = document.getElementById("editor");
+    if (editorSurface) editorSurface.hidden = true;
     document.title = title ? String(title) : "bmd";
 
     try {
@@ -232,6 +263,57 @@
       content.appendChild(message);
       throw error;
     }
+  };
+
+  window.bmdShowEditor = async function bmdShowEditor(
+    markdownSource,
+    title,
+    appearance,
+    vimEnabled,
+    documentIdentifier
+  ) {
+    setAppearance(appearance);
+    var editorRoot = document.getElementById("editor");
+    if (!editorRoot) throw new Error("Editor surface is missing");
+    if (typeof BMDEditorController !== "function") {
+      throw new Error("Bundled CodeMirror editor did not load");
+    }
+
+    if (editorController && editorDocumentIdentifier
+        && editorDocumentIdentifier !== documentIdentifier) {
+      editorPositions[editorDocumentIdentifier] = editorController.snapshotPosition();
+    }
+
+    var source = typeof markdownSource === "string" ? markdownSource : "";
+    if (!editorController) {
+      editorController = new BMDEditorController(editorRoot, {
+        text: source,
+        appearance: appearance,
+        vimEnabled: Boolean(vimEnabled),
+        onChange: function (text) {
+          sendEditorMessage("change", text);
+        },
+        onCommand: function (command, text) {
+          sendEditorMessage(command, text);
+        },
+      });
+    } else {
+      editorController.setText(source);
+      editorController.setAppearance(appearance);
+      editorController.setVimEnabled(Boolean(vimEnabled));
+    }
+
+    editorDocumentIdentifier = documentIdentifier || null;
+    showSurface("editing");
+    document.title = title ? String(title) : "bmd";
+    editorController.restorePosition(editorPositions[editorDocumentIdentifier]);
+    editorController.focus();
+
+    return {
+      characters: editorController.text.length,
+      mode: "editing",
+      vimEnabled: Boolean(vimEnabled),
+    };
   };
 
   window.bmdClear = function bmdClear() {

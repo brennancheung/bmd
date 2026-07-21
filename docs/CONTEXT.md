@@ -8,7 +8,7 @@
 
 ## Intent
 
-Dedicated macOS app for reading Markdown written by agents and humans. Native shell + real browser rendering. Not a full editor. Not Safari/Chrome. Not a C/C++ markdown stack.
+Dedicated macOS app for reading Markdown written by agents and humans. Native shell + real browser rendering, with a focused source-editing mode for quick corrections. Not a full IDE. Not Safari/Chrome. Not a C/C++ markdown stack.
 
 Primary pain points with existing Quick Look Markdown tools (esp. QLMarkdown):
 
@@ -26,7 +26,7 @@ Primary pain points with existing Quick Look Markdown tools (esp. QLMarkdown):
 | Sidebar: **Updates** + stable **Open** + **Projects** | Full Finder replacement |
 | Filename-first fuzzy search across the active project or all projects | File-content search |
 | Agents open files with this app → they join Open without reordering it | YAML/Rmd/Quarto science stack |
-| Web markdown, syntax, math, and Mermaid | Full editing workflows |
+| Web markdown, syntax, math, Mermaid, and focused source editing | IDE/LSP workflows |
 | Table-friendly CSS + centered, full-height window | App Store sandboxing/bookmarks |
 | Relative local images via bounded local URL scheme | Quick Look extension |
 
@@ -38,12 +38,14 @@ Native (Swift)
   - agent updates, stable open documents, history, project-opened files, and search index
   - recursive project discovery and dedicated current-file watching
   - file access + WebKit document read root
+  - edit-buffer state, atomic saves, and external-change conflict policy
   - pass markdown text + base directory into webview
 
 Web (bundled Resources/viewer)
   - marked.js → HTML
   - theme CSS (prose max-width, tables scroll/expand)
   - highlight.js, KaTeX, Mermaid, and light/dark themes
+  - CodeMirror Markdown source editing with optional Vim bindings
 ```
 
 **No Electron. No Safari. No system Chrome.** Only WKWebView inside bmd.
@@ -57,13 +59,15 @@ Swift owns:
 - Updates, Open, history, project, and opened-file lists
 - Global and active-project fuzzy search across indexed Markdown paths
 - Serving relative assets from the current file’s directory
+- Edit-buffer lifecycle, file writes, and external-change conflict decisions
 
 JS owns:
 
 - Markdown → HTML  
 - Presentation  
+- CodeMirror editing interactions and Vim key handling
 
-Bridge: load local `index.html`, then `window.bmdRender(markdownSource)` via `evaluateJavaScript`. Optional later: `WKScriptMessageHandler` for link clicks, outline, etc.
+Bridge: load local `index.html`, call `window.bmdRender(markdownSource)` for Preview or `window.bmdShowEditor(markdownSource)` for editing, and receive editor changes and save commands through `WKScriptMessageHandler`.
 
 ### CLI
 
@@ -84,7 +88,7 @@ so the file becomes current and joins the stable Open working set.
 ### Registration
 
 - Document types / UTIs for Markdown (`.md`, `.markdown`, common UTIs)  
-- App is a **viewer** (not claiming to be a full editor)  
+- App registers as a Markdown **editor**, while Preview remains its default mode
 - Quick Look: **not in v1** (phase 2+)
 
 ### Origin discussion (QLMarkdown)
@@ -123,6 +127,7 @@ We studied it only to know how QL works and what to *avoid*. bmd is greenfield a
 - Optional folder grants/bookmarks if App Store sandboxing is added later
 - [x] Better CSS, light/dark
 - [x] Syntax highlighting with highlight.js
+- [x] Focused CodeMirror editing with matching light/dark themes and optional Vim bindings
 - Click external links in default browser; internal anchors work  
 
 The direct-distribution build is intentionally not App Sandboxed. A file-only
@@ -171,7 +176,7 @@ Smoke test:
 
 ## Explicit non-goals (v1)
 
-- Editing / saving markdown  
+- IDE features such as LSP, refactoring, terminals, or plugin ecosystems
 - Multiple document windows  
 - Parity with GitHub rendering  
 - C/C++ markdown engines  

@@ -22,7 +22,7 @@ Two behaviors broke or obscured that stability:
 1. Once Open exceeds its configured limit, bmd silently removes the
    least-recently-viewed unpinned document. Removing a middle row shifts every row
    beneath it.
-2. `⌘[` and `⌘]` do not traverse Open. They traverse a separate chronological
+2. `[` and `]` do not traverse Open. They traverse a separate chronological
    visit history. The toolbar calls these controls “Previous Document” and “Next
    Document,” which implies spatial adjacency even though the implementation means
    temporal Back and Forward.
@@ -34,9 +34,9 @@ Open position:     1 A     2 B     3 C     4 D
 Visit sequence:      A  →    D  →    B
 
 Current: B (position 2)
-⌘[ target: D (position 4)
-⌘[ target: A (position 1)
-⌘] target: D (position 4)
+[ target: D (position 4)
+[ target: A (position 1)
+] target: D (position 4)
 ```
 
 The rows are stable, but the keyboard target jumps between them because the
@@ -48,7 +48,7 @@ The recommended model is:
 ```text
 Open position             Visit history
 stable spatial order      chronological order
-⌘1…⌘9 direct access       ⌘[ / ⌘] Back / Forward
+⌘1…⌘9 direct access       [ / ] Back / Forward
 Tab / ⇧Tab adjacent       explicitly labeled as history
 ```
 
@@ -305,7 +305,8 @@ Interaction rules:
 - Existing documents never move when selected.
 - The first nine visible positions have `⌘1…⌘9` addresses.
 - `Tab` and `⇧Tab` traverse adjacent Open positions.
-- `⌘[` and `⌘]` remain Back and Forward **in document history**.
+- `[` and `]` remain Back and Forward **in document history**, with `⌘[` and
+  `⌘]` retained as aliases.
 - Back/Forward tooltips and menu text use the word “history.”
 - Automatic LRU eviction is removed or changed to an explicit/soft-limit cleanup.
 - Close and manual reorder may renumber rows because the causal action is visible.
