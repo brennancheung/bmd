@@ -86,7 +86,7 @@ used documents predictable.
 | Open the selected result | `Return` |
 | Close search | `Escape` |
 | Open stable positions one through nine | `⌘1` through `⌘9` |
-| Move to the previous or next Open document | `⌃⇧Tab` / `⌃Tab` |
+| Move to the next or previous Open document | `Tab` / `⇧Tab` |
 | Move Back or Forward through reading history | `⌘[` / `⌘]` |
 
 ### Follow work as it changes

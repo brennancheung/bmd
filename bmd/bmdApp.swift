@@ -52,13 +52,13 @@ struct bmdApp: App {
                 Button("Previous Open Document") {
                     appState.selectAdjacentOpenDocument(.previous)
                 }
-                .keyboardShortcut(.tab, modifiers: [.control, .shift])
+                .keyboardShortcut(.tab, modifiers: .shift)
                 .disabled(appState.openDocuments.count < 2)
 
                 Button("Next Open Document") {
                     appState.selectAdjacentOpenDocument(.next)
                 }
-                .keyboardShortcut(.tab, modifiers: .control)
+                .keyboardShortcut(.tab, modifiers: [])
                 .disabled(appState.openDocuments.count < 2)
 
                 Menu("Open Document") {

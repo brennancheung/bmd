@@ -433,7 +433,7 @@ it removes an interruption from the workflow bmd is designed to protect.
 - Returning to a document restores its last scroll position during the current
   app session.
 - `⌘1` through `⌘9` open stable positions directly.
-- `⌃Tab` and `⌃⇧Tab` traverse adjacent Open positions.
+- `Tab` and `⇧Tab` traverse adjacent Open positions.
 - `⌃O` opens global search; `⌃P` opens active-project search; `⌘[` and `⌘]`
   navigate Back and Forward in
   document history.

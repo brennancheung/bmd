@@ -49,7 +49,7 @@ The recommended model is:
 Open position             Visit history
 stable spatial order      chronological order
 ⌘1…⌘9 direct access       ⌘[ / ⌘] Back / Forward
-⌃Tab / ⌃⇧Tab adjacent     explicitly labeled as history
+Tab / ⇧Tab adjacent       explicitly labeled as history
 ```
 
 This gives each ordering one job and makes the result of every shortcut
@@ -304,7 +304,7 @@ Interaction rules:
 - New documents append to the bottom.
 - Existing documents never move when selected.
 - The first nine visible positions have `⌘1…⌘9` addresses.
-- `⌃Tab` and `⌃⇧Tab` traverse adjacent Open positions.
+- `Tab` and `⇧Tab` traverse adjacent Open positions.
 - `⌘[` and `⌘]` remain Back and Forward **in document history**.
 - Back/Forward tooltips and menu text use the word “history.”
 - Automatic LRU eviction is removed or changed to an explicit/soft-limit cleanup.
